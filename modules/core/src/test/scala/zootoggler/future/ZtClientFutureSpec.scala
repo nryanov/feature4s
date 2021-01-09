@@ -57,5 +57,27 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures {
           updated shouldBe Feature("updatedValue", "/test3")
       }
     }
+
+    "update feature value and cache" in {
+      val cfg = ZtConfiguration(server.getConnectString, RetryPolicyType.Exponential(1000, 5))
+      val client = ZtClientFuture(cfg)
+
+      val accessorF = client.register("initialValue", "/test4")
+
+      val result = for {
+        accessor <- accessorF
+        initialCache = accessor.cachedValue
+        _ <- accessor.update("updatedValue")
+        updatedValue <- accessor.value
+        updatedCache = accessor.cachedValue
+      } yield (initialCache, updatedValue, updatedCache)
+
+      whenReady(result, PatienceConfiguration.Timeout(Span(5, Seconds))) {
+        case (initial, updated, updatedCache) =>
+          initial shouldBe Feature("initialValue", "/test4")
+          updated shouldBe Feature("updatedValue", "/test4")
+          updatedCache shouldBe Feature("updatedValue", "/test4")
+      }
+    }
   }
 }

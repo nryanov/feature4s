@@ -9,6 +9,11 @@ final case class Feature[A](
   val namespace: String = ns.getOrElse("")
 
   val description: String = ds.getOrElse("")
+
+  override def toString: String = ns match {
+    case Some(value) => s"Namespace: $value, Path: $path"
+    case None        => s"Path: $path"
+  }
 }
 
 object Feature {

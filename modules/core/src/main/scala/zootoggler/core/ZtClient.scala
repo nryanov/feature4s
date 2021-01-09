@@ -13,8 +13,12 @@ trait ZtClient[F[_]] {
     path: String
   ): F[FeatureAccessor[A]] = register(defaultValue, path, None, None)
 
+  def close(): F[Unit]
+
   trait FeatureAccessor[A] {
     def value: F[Feature[A]]
+
+    def cachedValue: Feature[A]
 
     def update(newValue: A): F[Unit]
   }
