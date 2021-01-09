@@ -84,3 +84,4 @@ lazy val zioIntegration = project
       "dev.zio" %% "zio-test" % zioVersion % Test
     )
   )
+  .dependsOn(core % "compile->compile;test->test")
