@@ -28,7 +28,7 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
     (suite("ZtClientZio")(
       testM("register new feature") {
         val effect = ZtClientZio.register("test", "/test1").flatMap(_.value)
-        assertM(effect)(equalTo(Feature("test", "/test1")))
+        assertM(effect)(equalTo("test"))
       },
       testM("get actual feature value when register already existing feature") {
         val effect = for {
@@ -36,7 +36,7 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
           feature <- ZtClientZio.register("defaultValue", "/test2").flatMap(_.value)
         } yield feature
 
-        assertM(effect)(equalTo(Feature("actualValue", "/test2")))
+        assertM(effect)(equalTo("actualValue"))
       },
       testM("update feature value") {
         val effect = for {
@@ -49,8 +49,8 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
         assertM(effect)(
           equalTo(
             (
-              Feature("initialValue", "/test3"),
-              Feature("updatedValue", "/test3")
+              "initialValue",
+              "updatedValue"
             )
           )
         )
@@ -67,9 +67,9 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
         assertM(effect)(
           equalTo(
             (
-              Feature("initialValue", "/test4"),
-              Feature("updatedValue", "/test4"),
-              Feature("updatedValue", "/test4")
+              "initialValue",
+              "updatedValue",
+              "updatedValue"
             )
           )
         )

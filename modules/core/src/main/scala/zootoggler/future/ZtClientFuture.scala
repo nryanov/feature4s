@@ -56,11 +56,11 @@ final class ZtClientFuture private (client: CuratorFramework)(implicit ex: Execu
 
   private def featureAccessor[A: Converter](feature: Feature[A]): FeatureAccessor[A] =
     new FeatureAccessor[A] {
-      private val cache = new AtomicReference[Feature[A]](feature)
+      private val cache = new AtomicReference[A](feature.value)
 
-      override def cachedValue: Feature[A] = cache.get()
+      override def cachedValue: A = cache.get()
 
-      override def value: Future[Feature[A]] = Future {
+      override def value: Future[A] = Future {
         val data: Array[Byte] =
           client.usingNamespace(feature.namespace).getData().forPath(feature.path)
 
@@ -70,9 +70,8 @@ final class ZtClientFuture private (client: CuratorFramework)(implicit ex: Execu
 
         Converter[A].fromByteArray(data) match {
           case Attempt.Successful(value) =>
-            val newValue = feature.copy(value = value)
-            cache.set(newValue)
-            newValue
+            cache.set(value)
+            value
           case Attempt.Failure(cause) => throw cause
         }
       }
@@ -85,7 +84,7 @@ final class ZtClientFuture private (client: CuratorFramework)(implicit ex: Execu
             case null =>
               Future.failed(new IllegalStateException(s"Feature does not exist: $feature"))
             case _ =>
-              cache.set(feature.copy(value = newValue))
+              cache.set(newValue)
               Future.successful(())
           }
         case Attempt.Failure(cause) => Future.failed(cause)

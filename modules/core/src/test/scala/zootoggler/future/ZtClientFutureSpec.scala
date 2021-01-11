@@ -1,7 +1,7 @@
 package zootoggler.future
 
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import org.scalatest.time.{Second, Seconds, Span}
+import org.scalatest.time.{Seconds, Span}
 import zootoggler.ZkTestServer
 import zootoggler.core.Feature
 import zootoggler.core.configuration.{RetryPolicyType, ZtConfiguration}
@@ -18,7 +18,7 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures {
       val feature = client.register("test", "/test1").flatMap(_.value)
 
       whenReady(feature, PatienceConfiguration.Timeout(Span(5, Seconds))) { f =>
-        f shouldBe Feature("test", "/test1")
+        f shouldBe "test"
       }
     }
 
@@ -34,7 +34,7 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures {
       val feature = accessor.flatMap(_.value)
 
       whenReady(feature, PatienceConfiguration.Timeout(Span(5, Seconds))) { f =>
-        f shouldBe Feature("actualValue", "/test2")
+        f shouldBe "actualValue"
       }
     }
 
@@ -53,8 +53,8 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures {
 
       whenReady(result, PatienceConfiguration.Timeout(Span(5, Seconds))) {
         case (initial, updated) =>
-          initial shouldBe Feature("initialValue", "/test3")
-          updated shouldBe Feature("updatedValue", "/test3")
+          initial shouldBe "initialValue"
+          updated shouldBe "updatedValue"
       }
     }
 
@@ -74,9 +74,9 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures {
 
       whenReady(result, PatienceConfiguration.Timeout(Span(5, Seconds))) {
         case (initial, updated, updatedCache) =>
-          initial shouldBe Feature("initialValue", "/test4")
-          updated shouldBe Feature("updatedValue", "/test4")
-          updatedCache shouldBe Feature("updatedValue", "/test4")
+          initial shouldBe "initialValue"
+          updated shouldBe "updatedValue"
+          updatedCache shouldBe "updatedValue"
       }
     }
   }

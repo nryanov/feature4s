@@ -16,9 +16,9 @@ trait ZtClient[F[_]] {
   def close(): F[Unit]
 
   trait FeatureAccessor[A] {
-    def value: F[Feature[A]]
+    def value: F[A]
 
-    def cachedValue: Feature[A]
+    def cachedValue: A
 
     def update(newValue: A): F[Unit]
   }

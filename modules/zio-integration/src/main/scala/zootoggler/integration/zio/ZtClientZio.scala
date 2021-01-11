@@ -75,11 +75,11 @@ final class ZtClientZio private (client: CuratorFramework, blocking: Blocking.Se
 
   private def featureAccessor[A: Converter](feature: Feature[A]): FeatureAccessor[A] =
     new FeatureAccessor[A] {
-      private val cache = new AtomicReference[Feature[A]](feature)
+      private val cache = new AtomicReference[A](feature.value)
 
-      override def cachedValue: Feature[A] = cache.get()
+      override def cachedValue: A = cache.get()
 
-      override def value: Task[Feature[A]] = for {
+      override def value: Task[A] = for {
         data <- blocking.effectBlocking(
           client.usingNamespace(feature.namespace).getData().forPath(feature.path)
         )
@@ -90,8 +90,7 @@ final class ZtClientZio private (client: CuratorFramework, blocking: Blocking.Se
         )
         feature <- Converter[A].fromByteArray(data) match {
           case Attempt.Successful(value) =>
-            val newValue = feature.copy(value = value)
-            Task.effectTotal(cache.set(newValue)).map(_ => newValue)
+            Task.effectTotal(cache.set(value)).map(_ => value)
           case Attempt.Failure(cause) =>
             error("Error happened while decoding actual value in") *> Task.fail(cause)
         }
@@ -107,7 +106,7 @@ final class ZtClientZio private (client: CuratorFramework, blocking: Blocking.Se
               error(s"Feature does not exist: $feature") *>
                 Task.fail(new IllegalStateException(s"Feature does not exist: $feature"))
             )
-            _ <- Task.effectTotal(cache.set(feature.copy(value = newValue)))
+            _ <- Task.effectTotal(cache.set(newValue))
           } yield ()
         case Attempt.Failure(cause) =>
           error(s"Error happened while encoding new value $newValue: $feature", cause) *> Task.fail(
