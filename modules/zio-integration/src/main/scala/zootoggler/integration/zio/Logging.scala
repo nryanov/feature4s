@@ -3,7 +3,7 @@ package zootoggler.integration.zio
 import org.slf4j.LoggerFactory
 import zio.UIO
 
-private[zootoggler] trait Logging {
+private[zio] trait Logging {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   def debug(msg: String): UIO[Unit] = UIO.effectTotal(logger.debug(msg))

@@ -1,4 +1,5 @@
 val zioVersion = "1.0.3"
+val catsVersion = "2.3.0"
 val curatorClientVersion = "5.1.0"
 val slf4jVersion = "1.7.30"
 val scalatestVersion = "3.2.0"
@@ -78,10 +79,22 @@ lazy val zioIntegration = project
   .in(file("modules/zio-integration"))
   .settings(commonSettings)
   .settings(
-    name := "core",
+    name := "zio-integration",
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion,
       "dev.zio" %% "zio-test" % zioVersion % Test
+    )
+  )
+  .dependsOn(core % "compile->compile;test->test")
+
+lazy val catsIntegration = project
+  .in(file("modules/cats-integration"))
+  .settings(commonSettings)
+  .settings(
+    name := "cats-integration",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsVersion,
+      "org.typelevel" %% "cats-effect" % catsVersion
     )
   )
   .dependsOn(core % "compile->compile;test->test")
