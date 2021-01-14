@@ -9,8 +9,7 @@ import zio.test.TestAspect.{sequential, timeout}
 import zio.test.{DefaultRunnableSpec, ZSpec, assertM, suite, testM}
 import zootoggler.ZookeeperTestServer
 import zootoggler.ZookeeperTestServer.Zookeeper
-import zootoggler.core.Feature
-import zootoggler.core.configuration.{RetryPolicyType, ZtConfiguration}
+import zootoggler.core.configuration.{FeatureConfiguration, RetryPolicyType, ZtConfiguration}
 import zootoggler.integration.zio.ZtClientZio.ZtClientEnv
 
 object ZtClientZioSpec extends DefaultRunnableSpec {
@@ -19,7 +18,8 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
     ZLayer.fromService(server =>
       ZtConfiguration(server.getConnectString, RetryPolicyType.Exponential(1000, 5))
     )
-  val client = (cfg ++ Blocking.live) >>> ZtClientZio.live
+  val featureCfg = ZLayer.succeed(FeatureConfiguration("/features"))
+  val client = (cfg ++ featureCfg ++ Blocking.live) >>> ZtClientZio.live
   val testEnv: ZLayer[Any, Throwable, ZtClientEnv] = zookeeper >>> client
 
   val timeoutAspect = timeout(Duration.ofSeconds(5))
@@ -27,20 +27,20 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
   override def spec: ZSpec[zio.test.environment.TestEnvironment, Any] =
     (suite("ZtClientZio")(
       testM("register new feature") {
-        val effect = ZtClientZio.register("test", "/test1").flatMap(_.value)
+        val effect = ZtClientZio.register("test", "name1").flatMap(_.value)
         assertM(effect)(equalTo("test"))
       },
       testM("get actual feature value when register already existing feature") {
         val effect = for {
-          _ <- ZtClientZio.register("actualValue", "/test2")
-          feature <- ZtClientZio.register("defaultValue", "/test2").flatMap(_.value)
+          _ <- ZtClientZio.register("actualValue", "name2")
+          feature <- ZtClientZio.register("defaultValue", "name2").flatMap(_.value)
         } yield feature
 
         assertM(effect)(equalTo("actualValue"))
       },
       testM("update feature value") {
         val effect = for {
-          accessor <- ZtClientZio.register("initialValue", "/test3")
+          accessor <- ZtClientZio.register("initialValue", "name3")
           initialValue <- accessor.value
           _ <- accessor.update("updatedValue")
           updatedValue <- accessor.value
@@ -50,25 +50,6 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
           equalTo(
             (
               "initialValue",
-              "updatedValue"
-            )
-          )
-        )
-      },
-      testM("update feature value and cache") {
-        val effect = for {
-          accessor <- ZtClientZio.register("initialValue", "/test4")
-          initialCache = accessor.cachedValue
-          _ <- accessor.update("updatedValue")
-          updatedValue <- accessor.value
-          updatedCache = accessor.cachedValue
-        } yield (initialCache, updatedValue, updatedCache)
-
-        assertM(effect)(
-          equalTo(
-            (
-              "initialValue",
-              "updatedValue",
               "updatedValue"
             )
           )

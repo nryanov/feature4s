@@ -1,53 +1,54 @@
 package zootoggler.future
 
-import java.util.concurrent.atomic.AtomicReference
-
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.zookeeper.KeeperException.NodeExistsException
 import org.slf4j.{Logger, LoggerFactory}
-import zootoggler.core.configuration.ZtConfiguration
+import zootoggler.core.Utils._
+import zootoggler.core.configuration.{FeatureConfiguration, ZtConfiguration}
 import zootoggler.core.{Attempt, Converter, Feature, ZtClient}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
-final class ZtClientFuture private (client: CuratorFramework)(implicit ex: ExecutionContext)
+final class ZtClientFuture private (
+  client: CuratorFramework,
+  featureConfiguration: FeatureConfiguration
+)(implicit ex: ExecutionContext)
     extends ZtClient[Future] {
   private val logger: Logger = LoggerFactory.getLogger(ZtClientFuture.getClass)
 
+  private val path = featureConfiguration.rootPath
+
+  private val namespace = featureConfiguration.namespace.getOrElse("")
+
   override def register[A: Converter](
     defaultValue: A,
-    path: String,
-    namespace: Option[String],
+    name: String,
     description: Option[String]
   ): Future[FeatureAccessor[A]] = {
-    logger.debug(
-      s"Register feature:\nDefault value: $defaultValue\nPath: $path,\nNamespace: $namespace,\nDescription: $description"
-    )
+    logger.debug(s"Register feature: $name")
     Future {
-      if (client.usingNamespace(namespace.getOrElse("")).checkExists().forPath(path) == null) {
-        logger.debug(s"Create new path: $path")
-        Converter[A].toByteArray(defaultValue) match {
-          case Attempt.Successful(value) =>
-            client.usingNamespace(namespace.getOrElse("")).create().forPath(path, value)
-            logger.debug(s"Successfully created new path: $path")
-            featureAccessor(Feature(defaultValue, path, namespace, description))
-          case Attempt.Failure(cause) =>
-            logger.error(
-              s"Error happened while encoding default feature value: $defaultValue for path: $path and namespace: $namespace",
-              cause
-            )
-            throw cause
-        }
-      } else {
-        logger.debug(s"Path: $path is already exist. Trying to get actual feature value")
-        val data = client.usingNamespace(namespace.getOrElse("")).getData().forPath(path)
-        Converter[A].fromByteArray(data) match {
-          case Attempt.Successful(value) =>
-            logger.debug(s"Successfully got actual value for path: $path")
-            featureAccessor(Feature(value, path, namespace, description))
-          case Attempt.Failure(cause) =>
-            logger.error(s"Error happened while decoding actual value for path: $path", cause)
-            throw cause
-        }
+      Converter[A].toByteArray(defaultValue) match {
+        case Attempt.Failure(cause) =>
+          logger.error(
+            s"Error happened while encoding default value: $defaultValue for feature: $name",
+            cause
+          )
+          throw cause
+        case Attempt.Successful(value) =>
+          Try {
+            client.createPath(fullPath(path, name), namespace, value)
+          } match {
+            case Success(_) =>
+              logger.debug(s"Successfully register: $name")
+              featureAccessor(Feature(defaultValue, name, description))
+            case Failure(_: NodeExistsException) =>
+              logger.debug(s"Feature: $name is already registered")
+              featureAccessor(Feature(defaultValue, name, description))
+            case Failure(exception) =>
+              logger.error(s"Error while register feature: $name", exception)
+              throw exception
+          }
       }
     }
   }
@@ -56,36 +57,23 @@ final class ZtClientFuture private (client: CuratorFramework)(implicit ex: Execu
 
   private def featureAccessor[A: Converter](feature: Feature[A]): FeatureAccessor[A] =
     new FeatureAccessor[A] {
-      private val cache = new AtomicReference[A](feature.value)
-
-      override def cachedValue: A = cache.get()
-
       override def value: Future[A] = Future {
-        val data: Array[Byte] =
-          client.usingNamespace(feature.namespace).getData().forPath(feature.path)
+        val data: Option[Array[Byte]] = client.get(feature.path(path), namespace)
 
-        if (data == null) {
-          throw new IllegalStateException(s"Feature does not exist: $feature")
-        }
-
-        Converter[A].fromByteArray(data) match {
-          case Attempt.Successful(value) =>
-            cache.set(value)
-            value
-          case Attempt.Failure(cause) => throw cause
+        data match {
+          case None        => throw new IllegalStateException(s"Feature does not exist: $feature")
+          case Some(value) => Converter[A].fromByteArray(value).require
         }
       }
 
       override def update(newValue: A): Future[Unit] = Converter[A].toByteArray(newValue) match {
         case Attempt.Successful(value) =>
           Future {
-            client.usingNamespace(feature.namespace).setData().forPath(feature.path, value)
+            client.set(feature.path(path), namespace, value)
           }.flatMap {
-            case null =>
+            case None =>
               Future.failed(new IllegalStateException(s"Feature does not exist: $feature"))
-            case _ =>
-              cache.set(newValue)
-              Future.successful(())
+            case _ => Future.successful(())
           }
         case Attempt.Failure(cause) => Future.failed(cause)
       }
@@ -93,12 +81,16 @@ final class ZtClientFuture private (client: CuratorFramework)(implicit ex: Execu
 }
 
 object ZtClientFuture {
-  def apply(client: CuratorFramework)(implicit ex: ExecutionContext): ZtClient[Future] =
-    new ZtClientFuture(client)(ex)
+  def apply(client: CuratorFramework, featureConfiguration: FeatureConfiguration)(implicit
+    ex: ExecutionContext
+  ): ZtClient[Future] =
+    new ZtClientFuture(client, featureConfiguration)(ex)
 
-  def apply(cfg: ZtConfiguration)(implicit ex: ExecutionContext): ZtClient[Future] = {
+  def apply(cfg: ZtConfiguration, featureConfiguration: FeatureConfiguration)(implicit
+    ex: ExecutionContext
+  ): ZtClient[Future] = {
     val client = CuratorFrameworkFactory.newClient(cfg.connectionString, cfg.retryPolicy)
     client.start()
-    new ZtClientFuture(client)(ex)
+    new ZtClientFuture(client, featureConfiguration)(ex)
   }
 }

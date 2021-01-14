@@ -25,5 +25,3 @@ final case class ZtConfiguration(
       new RetryUntilElapsed(maxElapsedTimeMs, sleepMsBetweenRetries)
   }
 }
-
-object ZtConfiguration {}
