@@ -71,6 +71,7 @@ lazy val core = project
     name := "core",
     libraryDependencies ++= Seq(
       "org.apache.curator" % "curator-framework" % curatorClientVersion,
+      "org.apache.curator" % "curator-recipes" % curatorClientVersion,
       "org.apache.curator" % "curator-test" % curatorClientVersion % Test
     )
   )
