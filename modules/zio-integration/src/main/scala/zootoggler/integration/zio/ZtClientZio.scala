@@ -2,139 +2,106 @@ package zootoggler.integration.zio
 
 import zio.{Has, Task, ZIO, ZLayer, ZManaged}
 import zio.blocking.Blocking
-import zootoggler.core.Utils._
-import zootoggler.core.{Attempt, Converter, Feature, ZtClient}
-import zootoggler.core.configuration.{FeatureConfiguration, ZtConfiguration}
-import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
-import org.apache.zookeeper.KeeperException.NodeExistsException
+import zootoggler.core.{Attempt, Converter, FeatureAccessor, ZtClient, ZtClientBasic}
+import zootoggler.core.configuration.ZtConfiguration
 
 final class ZtClientZio private (
-  client: CuratorFramework,
-  featureConfiguration: FeatureConfiguration,
+  client: ZtClient[Attempt],
   blocking: Blocking.Service
-) extends ZtClient[Task]
-    with Logging {
-
-  private val path = featureConfiguration.rootPath
-
-  private val namespace = featureConfiguration.namespace.getOrElse("")
-
+) extends ZtClient[Task] {
   override def register[A: Converter](
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): Task[FeatureAccessor[A]] =
-    createPath(defaultValue, name, description).map(feature => featureAccessor(feature))
+  ): Task[FeatureAccessor[Task, A]] =
+    blocking
+      .effectBlocking(client.register(defaultValue, name, description))
+      .flatMap(result => toTask(result))
+      .map(accessor => featureAccessorAdapter(accessor))
 
-  private def createPath[A: Converter](
+  override def remove(name: String): Task[Boolean] =
+    blocking.effectBlocking(client.remove(name)).flatMap(toTask)
+
+  override def isExist(name: String): Task[Boolean] =
+    blocking.effectBlocking(client.isExist(name)).flatMap(toTask)
+
+  override def recreate[A: Converter](
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): Task[Feature[A]] = for {
-    _ <- debug(s"Create new path: $path in namespace: $namespace")
-    _ <- Converter[A].toByteArray(defaultValue) match {
-      case Attempt.Successful(value) =>
-        blocking
-          .effectBlocking(
-            client.createPath(fullPath(path, name), namespace, value)
-          )
-          .catchSome { case _: NodeExistsException =>
-            info(s"Feature% $name is already registered")
-          } *> info(
-          s"Successfully register feature: $name"
-        )
-      case Attempt.Failure(cause) =>
-        error(
-          s"Error happened while encoding default feature value: $defaultValue for path: $path and namespace: $namespace",
-          cause
-        ) *> Task.fail(cause)
-    }
-  } yield Feature(defaultValue, name, description)
+  ): Task[FeatureAccessor[Task, A]] = blocking
+    .effectBlocking(client.recreate(defaultValue, name, description))
+    .flatMap(result => toTask(result))
+    .map(accessor => featureAccessorAdapter(accessor))
 
-  private def featureAccessor[A: Converter](feature: Feature[A]): FeatureAccessor[A] =
-    new FeatureAccessor[A] {
-      override def value: Task[A] = for {
-        data <- blocking.effectBlocking(
-          client.get(feature.path(path), namespace)
-        )
-        featureValue <- data match {
-          case None =>
-            error(s"Feature does not exist $feature") *> Task.fail(
-              new IllegalStateException(s"Feature does not exist $feature")
-            )
-          case Some(value) =>
-            Converter[A].fromByteArray(value) match {
-              case Attempt.Successful(value) => Task.succeed(value)
-              case Attempt.Failure(cause) =>
-                error("Error happened while decoding actual value in") *> Task.fail(cause)
-            }
-        }
-      } yield featureValue
+  override def close(): Task[Unit] = blocking.effectBlocking(client.close()).flatMap(toTask)
 
-      override def update(newValue: A): Task[Unit] = Converter[A].toByteArray(newValue) match {
-        case Attempt.Successful(value) =>
-          for {
-            result <- blocking.effectBlocking(
-              client.set(feature.path(path), namespace, value)
-            )
-            _ <- Task.when(result.isEmpty)(
-              error(s"Feature does not exist: $feature") *>
-                Task.fail(new IllegalStateException(s"Feature does not exist: $feature"))
-            )
-          } yield ()
-        case Attempt.Failure(cause) =>
-          error(s"Error happened while encoding new value $newValue: $feature", cause) *> Task.fail(
-            cause
-          )
-      }
-    }
+  private def featureAccessorAdapter[A: Converter](
+    featureAccessor: FeatureAccessor[Attempt, A]
+  ): FeatureAccessor[Task, A] = new FeatureAccessor[Task, A] {
+    override def value: Task[A] = blocking.effectBlocking(featureAccessor.value).flatMap(toTask)
 
-  def close(): Task[Unit] = Task.effect(client.close())
+    override def update(newValue: A): Task[Boolean] =
+      blocking.effectBlocking(featureAccessor.update(newValue)).flatMap(toTask)
+  }
+
+  private def toTask[A](attempt: Attempt[A]): Task[A] = attempt match {
+    case Attempt.Successful(value) => Task.succeed(value)
+    case Attempt.Failure(cause)    => Task.fail(cause)
+  }
 }
 
 object ZtClientZio {
   type ZtClientEnv = Has[ZtClient[Task]]
 
-  val live: ZLayer[Blocking with Has[ZtConfiguration] with Has[
-    FeatureConfiguration
-  ], Throwable, ZtClientEnv] =
+  val live: ZLayer[Blocking with Has[ZtConfiguration], Throwable, ZtClientEnv] =
     ZLayer.fromServicesManaged[
       Blocking.Service,
       ZtConfiguration,
-      FeatureConfiguration,
       Any,
       Throwable,
       ZtClient[Task]
-    ] { (blocking, cfg, featureCfg) =>
-      make(blocking, cfg, featureCfg)
+    ] { (blocking, cfg) =>
+      make(blocking, cfg)
     }
 
   def make(
     blocking: Blocking.Service,
-    cfg: ZtConfiguration,
-    featureConfiguration: FeatureConfiguration
+    cfg: ZtConfiguration
   ): ZManaged[Any, Throwable, ZtClient[Task]] =
     ZManaged.make(
-      Task
-        .effect(
-          CuratorFrameworkFactory.newClient(cfg.connectionString, cfg.retryPolicy)
-        )
-        .tap(client => Task.effect(client.start()))
-        .map(new ZtClientZio(_, featureConfiguration, blocking))
+      Task.effect(ZtClientBasic(cfg)).map(new ZtClientZio(_, blocking))
     )(_.close().orDie)
 
   def register[A: Converter](
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): ZIO[ZtClientEnv, Throwable, ZtClient[Task]#FeatureAccessor[A]] =
+  ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.register(defaultValue, name, description))
 
   def register[A: Converter](
     defaultValue: A,
     name: String
-  ): ZIO[ZtClientEnv, Throwable, ZtClient[Task]#FeatureAccessor[A]] =
+  ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.register(defaultValue, name, None))
+
+  def recreate[A: Converter](
+    defaultValue: A,
+    name: String,
+    description: Option[String]
+  ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
+    ZIO.accessM(_.get.recreate(defaultValue, name, description))
+
+  def recreate[A: Converter](
+    defaultValue: A,
+    name: String
+  ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
+    ZIO.accessM(_.get.recreate(defaultValue, name, None))
+
+  def remove(name: String): ZIO[ZtClientEnv, Throwable, Boolean] = ZIO.accessM(_.get.remove(name))
+
+  def isExist(name: String): ZIO[ZtClientEnv, Throwable, Boolean] = ZIO.accessM(_.get.isExist(name))
 
   def close(): ZIO[ZtClientEnv, Throwable, Unit] = ZIO.accessM(_.get.close())
 }

@@ -1,7 +1,8 @@
 package zootoggler.core
 
-import java.util.concurrent.{CountDownLatch, TimeUnit, TimeoutException}
+import java.util.concurrent.{CountDownLatch, ExecutorService, Executors, TimeUnit, TimeoutException}
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.slf4j.{Logger, LoggerFactory}
 import zootoggler.core.configuration.ZtConfiguration
 import org.apache.zookeeper.data.Stat
@@ -11,8 +12,7 @@ import org.apache.zookeeper.KeeperException.{
   NodeExistsException
 }
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
-import org.apache.curator.framework.recipes.cache.{CuratorCache, CuratorCacheListener}
-import org.apache.curator.framework.api.{CuratorEvent, CuratorEventType, CuratorListener}
+import org.apache.curator.framework.recipes.cache.{ChildData, CuratorCache, CuratorCacheListener}
 
 private class ZtClientBasic(
   client: CuratorFramework,
@@ -22,22 +22,30 @@ private class ZtClientBasic(
 ) extends ZtClient[Attempt] {
   private val logger: Logger = LoggerFactory.getLogger("ZtClient")
 
+  private val listenerExecutor: ExecutorService =
+    Executors.newSingleThreadExecutor(
+      new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("zk-client-event-listener-%d")
+        .build()
+    )
+
   override def register[A](
     defaultValue: A,
     name: String,
     description: Option[String]
-  )(implicit converter: Converter[A]): Attempt[FeatureAccessor[A]] = {
+  )(implicit converter: Converter[A]): Attempt[FeatureAccessor[Attempt, A]] = {
     val fullPath = s"$rootPath/$name"
 
     logger.info(s"Register feature: $name")
     val result = for {
       value <- converter.toByteArray(defaultValue)
       latch = new CountDownLatch(1)
-      listener = clientListener(latch, fullPath)
-      _ <- Attempt.delay(client.getCuratorListenable.addListener(listener))
+      listener = cacheListener(latch, fullPath)
+      _ <- Attempt.delay(cache.listenable().addListener(listener, listenerExecutor))
       _ <- Attempt.delay(client.create().creatingParentsIfNeeded().forPath(fullPath, value))
       waitResult <- Attempt.delay(latch.await(featureRegisterTimeoutMs, TimeUnit.MILLISECONDS))
-      _ <- Attempt.delay(client.getCuratorListenable.removeListener(listener))
+      _ <- Attempt.delay(cache.listenable.removeListener(listener))
       feature <-
         if (waitResult) {
           Attempt.successful(featureAccessor(Feature(defaultValue, name, description), fullPath))
@@ -98,7 +106,7 @@ private class ZtClientBasic(
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): Attempt[FeatureAccessor[A]] = {
+  ): Attempt[FeatureAccessor[Attempt, A]] = {
     logger.info(s"Recreate feature: $name")
     val fullPath = s"$rootPath/$name"
     val stat = new Stat()
@@ -127,45 +135,61 @@ private class ZtClientBasic(
   private def featureAccessor[A](
     feature: Feature[A],
     fullPath: String
-  )(implicit converter: Converter[A]): FeatureAccessor[A] = new FeatureAccessor[A] {
-    override def value: Attempt[A] = for {
-      element <- Attempt.fromOption(Option(cache.get(fullPath).orElse(null)))
-      currentValue <- converter.fromByteArray(element.getData)
-    } yield currentValue
+  )(implicit converter: Converter[A]): FeatureAccessor[Attempt, A] =
+    new FeatureAccessor[Attempt, A] {
+      override def value: Attempt[A] = for {
+        element <- Attempt.fromOption(Option(cache.get(fullPath).orElse(null)))
+        currentValue <- converter.fromByteArray(element.getData)
+      } yield currentValue
 
-    override def update(newValue: A): Attempt[Boolean] = {
-      val stat = new Stat()
-      val request = for {
-        newData <- converter.toByteArray(newValue)
-        result <- Attempt.delay(client.getData.storingStatIn(stat).forPath(fullPath))
-        version <- Attempt.fromOption(Option(result)).map(_ => stat.getVersion)
-        _ <- Attempt.delay(client.setData().withVersion(version).forPath(fullPath, newData))
-      } yield true
+      override def update(newValue: A): Attempt[Boolean] = {
+        val stat = new Stat()
+        val request = for {
+          newData <- converter.toByteArray(newValue)
+          result <- Attempt.delay(client.getData.storingStatIn(stat).forPath(fullPath))
+          version <- Attempt.fromOption(Option(result)).map(_ => stat.getVersion)
+          _ <- Attempt.delay(client.setData().withVersion(version).forPath(fullPath, newData))
+        } yield true
 
-      request.catchSome { case _: BadVersionException =>
-        Attempt.successful(false)
-      }.tapBoth(
-        err => logger.error(s"Error happened while updating feature: $feature", err),
-        _ => ()
-      )
-    }
-  }
-
-  private def clientListener(latch: CountDownLatch, path: String): CuratorListener =
-    (_: CuratorFramework, event: CuratorEvent) =>
-      if (event.getType == CuratorEventType.CREATE && event.getPath == path) {
-        latch.countDown()
+        request.catchSome { case _: BadVersionException =>
+          Attempt.successful(false)
+        }.tapBoth(
+          err => logger.error(s"Error happened while updating feature: $feature", err),
+          _ => ()
+        )
       }
+    }
+
+  private def cacheListener(
+    latch: CountDownLatch,
+    path: String
+  ): CuratorCacheListener =
+    CuratorCacheListener
+      .builder()
+      .forCreates { (el: ChildData) =>
+        if (el.getPath == path) {
+          latch.countDown()
+          logger.info(s"Path $path created")
+        } else {
+          logger.info(s"PATH: $path")
+        }
+      }
+      .build()
 }
 
 object ZtClientBasic {
-  def apply(cfg: ZtConfiguration, rootPath: String): ZtClient[Attempt] = {
+  def apply(cfg: ZtConfiguration): ZtClient[Attempt] = {
     val client = CuratorFrameworkFactory.newClient(cfg.connectionString, cfg.retryPolicy)
 
     client.start()
     client.blockUntilConnected(cfg.connectionTimeoutMs, TimeUnit.MILLISECONDS)
 
-    val cache = CuratorCache.build(client, rootPath)
+    val clientFacade = cfg.namespace match {
+      case Some(value) => client.usingNamespace(value)
+      case None        => client
+    }
+
+    val cache = CuratorCache.build(clientFacade, cfg.rootPath)
 
     val latch = new CountDownLatch(1)
     val cacheListener =
@@ -176,6 +200,11 @@ object ZtClientBasic {
     latch.await()
     cache.listenable().removeListener(cacheListener)
 
-    new ZtClientBasic(client, cache, rootPath, cfg.featureRegisterTimeoutMs)
+    new ZtClientBasic(
+      clientFacade,
+      cache,
+      cfg.rootPath,
+      cfg.featureRegisterTimeoutMs
+    )
   }
 }

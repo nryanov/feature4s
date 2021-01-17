@@ -5,12 +5,12 @@ trait ZtClient[F[_]] {
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): F[FeatureAccessor[A]]
+  ): F[FeatureAccessor[F, A]]
 
   final def register[A: Converter](
     defaultValue: A,
     path: String
-  ): F[FeatureAccessor[A]] = register(defaultValue, path, None)
+  ): F[FeatureAccessor[F, A]] = register(defaultValue, path, None)
 
   def remove(name: String): F[Boolean]
 
@@ -20,13 +20,12 @@ trait ZtClient[F[_]] {
     defaultValue: A,
     name: String,
     description: Option[String]
-  ): F[FeatureAccessor[A]]
+  ): F[FeatureAccessor[F, A]]
+
+  final def recreate[A: Converter](
+    defaultValue: A,
+    name: String
+  ): F[FeatureAccessor[F, A]] = recreate(defaultValue, name, None)
 
   def close(): F[Unit]
-
-  trait FeatureAccessor[A] {
-    def value: F[A]
-
-    def update(newValue: A): F[Boolean]
-  }
 }

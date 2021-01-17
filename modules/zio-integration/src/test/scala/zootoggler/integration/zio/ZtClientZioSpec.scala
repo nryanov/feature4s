@@ -9,17 +9,16 @@ import zio.test.TestAspect.{sequential, timeout}
 import zio.test.{DefaultRunnableSpec, ZSpec, assertM, suite, testM}
 import zootoggler.ZookeeperTestServer
 import zootoggler.ZookeeperTestServer.Zookeeper
-import zootoggler.core.configuration.{FeatureConfiguration, RetryPolicyType, ZtConfiguration}
+import zootoggler.core.configuration.{RetryPolicyType, ZtConfiguration}
 import zootoggler.integration.zio.ZtClientZio.ZtClientEnv
 
 object ZtClientZioSpec extends DefaultRunnableSpec {
   val zookeeper = Blocking.live >>> ZookeeperTestServer.zookeeper()
   val cfg: ZLayer[Zookeeper, Throwable, Has[ZtConfiguration]] =
     ZLayer.fromService(server =>
-      ZtConfiguration(server.getConnectString, RetryPolicyType.Exponential(1000, 5))
+      ZtConfiguration(server.getConnectString, "/features", RetryPolicyType.Exponential(1000, 5))
     )
-  val featureCfg = ZLayer.succeed(FeatureConfiguration("/features"))
-  val client = (cfg ++ featureCfg ++ Blocking.live) >>> ZtClientZio.live
+  val client = (cfg ++ Blocking.live) >>> ZtClientZio.live
   val testEnv: ZLayer[Any, Throwable, ZtClientEnv] = zookeeper >>> client
 
   val timeoutAspect = timeout(Duration.ofSeconds(5))
