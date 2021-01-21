@@ -41,7 +41,7 @@ object ZtClientZioSpec extends DefaultRunnableSpec {
         val effect = for {
           accessor <- ZtClientZio.register("initialValue", "name3")
           initialValue <- accessor.value
-          _ <- accessor.update("updatedValue")
+          _ <- ZtClientZio.update("name3", "updatedValue")
           updatedValue <- accessor.value
         } yield (initialValue, updatedValue)
 

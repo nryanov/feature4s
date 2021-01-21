@@ -65,7 +65,7 @@ class ZtClientFutureSpec extends ZkTestServer with ScalaFutures with Eventually 
       val f = for {
         accessor <- client.register("test", "name3")
         value <- accessor.value
-        _ <- accessor.update("updatedValue")
+        _ <- client.update("name3", "updatedValue")
         newValue <- accessor.value
       } yield (value, newValue)
 

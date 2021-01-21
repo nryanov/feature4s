@@ -1,13 +1,13 @@
 package zootoggler.core
 
-import org.scalatest.OptionValues
+import org.scalatest.{EitherValues, OptionValues}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import zootoggler.ZkTestServer
 import zootoggler.core.configuration.RetryPolicyType.Exponential
 import zootoggler.core.configuration.ZtConfiguration
 
-class ZtClientSpec extends ZkTestServer with OptionValues with Eventually {
+class ZtClientSpec extends ZkTestServer with OptionValues with EitherValues with Eventually {
   "ZtClient" should {
     "register feature" in {
       val cfg = ZtConfiguration(server.getConnectString, "/features", Exponential(1000, 5))
@@ -54,7 +54,7 @@ class ZtClientSpec extends ZkTestServer with OptionValues with Eventually {
       val feature: Attempt[FeatureAccessor[Attempt, String]] = client.register("test", "name3")
 
       feature.require.value.toOption.value shouldBe "test"
-      feature.require.update("updatedValue").toOption.value shouldBe true
+      client.update("name3", "updatedValue").toOption.value shouldBe true
 
       eventuallyWithTimeout(
         feature.require.value.toOption.value shouldBe "updatedValue"
@@ -123,6 +123,16 @@ class ZtClientSpec extends ZkTestServer with OptionValues with Eventually {
       eventuallyWithTimeout(
         client.isExist("name8").toOption.value shouldBe false
       )
+    }
+
+    "fail if trying to update feature with incompatible value type" in {
+      val cfg = ZtConfiguration(server.getConnectString, "/features", Exponential(1000, 5))
+      val client = ZtClientBasic(cfg)
+
+      client.register("test", "name9")
+      val result = client.update("name9", 1).toEither
+
+      result.left.value shouldBe a[IllegalArgumentException]
     }
   }
 

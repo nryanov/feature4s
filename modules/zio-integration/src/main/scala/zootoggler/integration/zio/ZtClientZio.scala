@@ -2,14 +2,14 @@ package zootoggler.integration.zio
 
 import zio.{Has, Task, ZIO, ZLayer, ZManaged}
 import zio.blocking.Blocking
-import zootoggler.core.{Attempt, Converter, FeatureAccessor, ZtClient, ZtClientBasic}
+import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, ZtClient, ZtClientBasic}
 import zootoggler.core.configuration.ZtConfiguration
 
 final class ZtClientZio private (
   client: ZtClient[Attempt],
   blocking: Blocking.Service
 ) extends ZtClient[Task] {
-  override def register[A: Converter](
+  override def register[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
@@ -25,7 +25,7 @@ final class ZtClientZio private (
   override def isExist(name: String): Task[Boolean] =
     blocking.effectBlocking(client.isExist(name)).flatMap(toTask)
 
-  override def recreate[A: Converter](
+  override def recreate[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
@@ -34,15 +34,15 @@ final class ZtClientZio private (
     .flatMap(result => toTask(result))
     .map(accessor => featureAccessorAdapter(accessor))
 
+  override def update[A: FeatureType](name: String, newValue: A): Task[Boolean] =
+    blocking.effectBlocking(client.update(name, newValue)).flatMap(toTask)
+
   override def close(): Task[Unit] = blocking.effectBlocking(client.close()).flatMap(toTask)
 
-  private def featureAccessorAdapter[A: Converter](
+  private def featureAccessorAdapter[A: FeatureType](
     featureAccessor: FeatureAccessor[Attempt, A]
   ): FeatureAccessor[Task, A] = new FeatureAccessor[Task, A] {
     override def value: Task[A] = blocking.effectBlocking(featureAccessor.value).flatMap(toTask)
-
-    override def update(newValue: A): Task[Boolean] =
-      blocking.effectBlocking(featureAccessor.update(newValue)).flatMap(toTask)
   }
 
   private def toTask[A](attempt: Attempt[A]): Task[A] = attempt match {
@@ -73,31 +73,34 @@ object ZtClientZio {
       Task.effect(ZtClientBasic(cfg)).map(new ZtClientZio(_, blocking))
     )(_.close().orDie)
 
-  def register[A: Converter](
+  def register[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
   ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.register(defaultValue, name, description))
 
-  def register[A: Converter](
+  def register[A: FeatureType](
     defaultValue: A,
     name: String
   ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.register(defaultValue, name, None))
 
-  def recreate[A: Converter](
+  def recreate[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
   ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.recreate(defaultValue, name, description))
 
-  def recreate[A: Converter](
+  def recreate[A: FeatureType](
     defaultValue: A,
     name: String
   ): ZIO[ZtClientEnv, Throwable, FeatureAccessor[Task, A]] =
     ZIO.accessM(_.get.recreate(defaultValue, name, None))
+
+  def update[A: FeatureType](name: String, newValue: A): ZIO[ZtClientEnv, Throwable, Boolean] =
+    ZIO.accessM(_.get.update(name, newValue))
 
   def remove(name: String): ZIO[ZtClientEnv, Throwable, Boolean] = ZIO.accessM(_.get.remove(name))
 

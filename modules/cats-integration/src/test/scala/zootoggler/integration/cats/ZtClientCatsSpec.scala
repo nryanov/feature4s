@@ -47,7 +47,7 @@ class ZtClientCatsSpec extends IOSpec with ZkTestServer {
           for {
             accessorF <- client.register("initialValue", "name3")
             initialValue <- accessorF.value
-            _ <- accessorF.update("updatedValue")
+            _ <- client.update("name3", "updatedValue")
             updatedValue <- accessorF.value
           } yield {
             assertResult("initialValue")(initialValue)

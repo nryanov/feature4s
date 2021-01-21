@@ -1,13 +1,13 @@
 package zootoggler.future
 
 import zootoggler.core.configuration.ZtConfiguration
-import zootoggler.core.{Attempt, Converter, FeatureAccessor, ZtClient, ZtClientBasic}
+import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, ZtClient, ZtClientBasic}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 private final class ZtClientFuture(client: ZtClient[Attempt])(implicit ex: ExecutionContext)
     extends ZtClient[Future] {
-  override def register[A: Converter](
+  override def register[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
@@ -21,7 +21,7 @@ private final class ZtClientFuture(client: ZtClient[Attempt])(implicit ex: Execu
   override def isExist(name: String): Future[Boolean] =
     Future(client.isExist(name)).flatMap(toFuture)
 
-  override def recreate[A: Converter](
+  override def recreate[A: FeatureType](
     defaultValue: A,
     name: String,
     description: Option[String]
@@ -32,17 +32,17 @@ private final class ZtClientFuture(client: ZtClient[Attempt])(implicit ex: Execu
 
   override def close(): Future[Unit] = Future(client.close()).flatMap(toFuture)
 
+  override def update[A: FeatureType](name: String, newValue: A): Future[Boolean] =
+    Future(client.update(name, newValue)).flatMap(toFuture)
+
   private def toFuture[A](attempt: Attempt[A]): Future[A] = attempt match {
     case Attempt.Successful(value) => Future.successful(value)
     case Attempt.Failure(cause)    => Future.failed(cause)
   }
 
-  private def featureAccessorAdapter[A: Converter](featureAccessor: FeatureAccessor[Attempt, A]) =
+  private def featureAccessorAdapter[A: FeatureType](featureAccessor: FeatureAccessor[Attempt, A]) =
     new FeatureAccessor[Future, A] {
       override def value: Future[A] = Future(featureAccessor.value).flatMap(toFuture)
-
-      override def update(newValue: A): Future[Boolean] =
-        Future(featureAccessor.update(newValue)).flatMap(toFuture)
     }
 }
 
