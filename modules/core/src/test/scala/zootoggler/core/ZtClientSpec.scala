@@ -77,7 +77,10 @@ class ZtClientSpec extends ZkTestServer with OptionValues with EitherValues with
       val feature: Attempt[FeatureAccessor[Attempt, String]] = client.register("test", "name5")
 
       feature.require.value.toOption.value shouldBe "test"
+      client.featureList().size shouldBe 1
+
       client.remove("name5").toOption.value shouldBe true
+      eventuallyWithTimeout(client.featureList().isEmpty shouldBe true)
     }
 
     "recreate feature" in {
@@ -133,6 +136,35 @@ class ZtClientSpec extends ZkTestServer with OptionValues with EitherValues with
       val result = client.update("name9", 1).toEither
 
       result.left.value shouldBe a[IllegalArgumentException]
+    }
+
+    "get feature list" in {
+      val cfg = ZtConfiguration(server.getConnectString, "/features", Exponential(1000, 5))
+      val client = ZtClientBasic(cfg)
+
+      client.register("test", "feature1")
+      client.register(1, "feature2")
+      client.register(true, "feature3")
+
+      client.featureList().sortBy(_.featureName) shouldBe List(
+        FeatureView("feature1", "string", None, Attempt.successful("test")),
+        FeatureView("feature2", "int", None, Attempt.successful("1")),
+        FeatureView("feature3", "boolean", None, Attempt.successful("true"))
+      )
+    }
+
+    "update feature description" in {
+      val cfg = ZtConfiguration(server.getConnectString, "/features", Exponential(1000, 5))
+      val client = ZtClientBasic(cfg)
+
+      client.register("test", "feature4")
+      client.update("feature4", "updated", Some("Some info"))
+
+      eventuallyWithTimeout {
+        client.featureList() shouldBe List(
+          FeatureView("feature4", "string", Some("Some info"), Attempt.successful("updated"))
+        )
+      }
     }
   }
 

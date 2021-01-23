@@ -5,7 +5,6 @@ import java.util.concurrent.{CountDownLatch, ExecutorService, Executors, TimeUni
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.curator.framework.recipes.cache.{ChildData, CuratorCache, CuratorCacheListener}
 import org.slf4j.{Logger, LoggerFactory}
-import zootoggler.core.FeatureMap.FeatureInfo
 
 import scala.collection.concurrent
 import scala.collection.concurrent.TrieMap
@@ -35,7 +34,12 @@ private[core] class FeatureMap(cache: CuratorCache, featureRegisterTimeoutMs: In
 
   cache.listenable().addListener(cacheListener(), listenerExecutor)
 
-  def register[A](name: String, fullPath: String, action: => Attempt[Any])(implicit
+  def register[A](
+    name: String,
+    fullPath: String,
+    description: Option[String],
+    action: => Attempt[Any]
+  )(implicit
     ft: FeatureType[A]
   ): Attempt[Unit] = {
     val latch = new CountDownLatch(1)
@@ -47,7 +51,7 @@ private[core] class FeatureMap(cache: CuratorCache, featureRegisterTimeoutMs: In
       _ <- Attempt.delay(cache.listenable.removeListener(listener))
       _ <-
         if (waitResult) {
-          Attempt.successful(knownFeatures.+=(fullPath -> FeatureInfo(name, ft)))
+          Attempt.successful(knownFeatures.+=(fullPath -> FeatureInfo(name, ft, description)))
         } else {
           logger.warn(
             s"Feature register timeout exceeded $featureRegisterTimeoutMs ms when registering new feature $name"
@@ -61,7 +65,11 @@ private[core] class FeatureMap(cache: CuratorCache, featureRegisterTimeoutMs: In
     } yield ()
   }
 
-  def update[A](name: String, fullPath: String, action: => Attempt[Boolean])(implicit
+  def update[A](
+    fullPath: String,
+    description: Option[String],
+    action: => Attempt[Boolean]
+  )(implicit
     ft: FeatureType[A]
   ): Attempt[Boolean] =
     for {
@@ -73,14 +81,45 @@ private[core] class FeatureMap(cache: CuratorCache, featureRegisterTimeoutMs: In
           )
         else Attempt.successful(())
       result <- action
+      _ <- Attempt.delay(
+        knownFeatures.update(fullPath, currentType.copy(description = description))
+      )
     } yield result
 
-  def featureList(): Map[String, (Array[Byte], FeatureInfo[_])] =
+  def updateFromString(
+    fullPath: String,
+    newValue: String,
+    description: Option[String],
+    action: Array[Byte] => Attempt[Boolean]
+  ): Attempt[Boolean] = for {
+    currentType <- Attempt.fromOption(knownFeatures.get(fullPath))
+    value <- currentType.featureType.fromStringToRaw(newValue)
+    result <- action(value)
+    _ <- Attempt.delay(
+      knownFeatures.update(fullPath, currentType.copy(description = description))
+    )
+  } yield result
+
+  def updateFromByteArray(
+    fullPath: String,
+    newValue: Array[Byte],
+    description: Option[String],
+    action: Array[Byte] => Attempt[Boolean]
+  ): Attempt[Boolean] = for {
+    currentType <- Attempt.fromOption(knownFeatures.get(fullPath))
+    _ <- currentType.featureType.converter.fromByteArray(newValue)
+    result <- action(newValue)
+    _ <- Attempt.delay(
+      knownFeatures.update(fullPath, currentType.copy(description = description))
+    )
+  } yield result
+
+  def featureList(): List[FeatureView] =
     knownFeatures.map { case (path, info) =>
       (Option(cache.get(path).map(_.getData).orElse(null)), info)
     }.collect {
-      case (value, info) if value.isDefined => (info.name, (value.get, info))
-    }.toMap
+      case (value, info) if value.isDefined => FeatureView(info, value.get)
+    }.toList
 
   private def featureCreationListener(
     latch: CountDownLatch,
@@ -98,14 +137,6 @@ private[core] class FeatureMap(cache: CuratorCache, featureRegisterTimeoutMs: In
 }
 
 object FeatureMap {
-  final case class FeatureInfo[A](name: String, featureType: FeatureType[A])
-
-  final case class FeatureView(cachedValue: Array[Byte], featureType: FeatureType[_]) {
-    val typeName: String = featureType.typeName
-
-    val value: Attempt[String] = featureType.prettyPrint(cachedValue)
-  }
-
   def apply(cache: CuratorCache, featureRegisterTimeoutMs: Int): FeatureMap =
     new FeatureMap(cache, featureRegisterTimeoutMs)
 }

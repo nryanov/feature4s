@@ -1,7 +1,7 @@
 package zootoggler.future
 
 import zootoggler.core.configuration.ZtConfiguration
-import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, ZtClient, ZtClientBasic}
+import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, FeatureView, ZtClient, ZtClientBasic}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,15 +32,37 @@ private final class ZtClientFuture(client: ZtClient[Attempt])(implicit ex: Execu
 
   override def close(): Future[Unit] = Future(client.close()).flatMap(toFuture)
 
-  override def update[A: FeatureType](name: String, newValue: A): Future[Boolean] =
-    Future(client.update(name, newValue)).flatMap(toFuture)
+  override def featureList(): List[FeatureView] = client.featureList()
+
+  override def update[A: FeatureType](
+    name: String,
+    newValue: A,
+    description: Option[String]
+  ): Future[Boolean] =
+    Future(client.update(name, newValue, description)).flatMap(toFuture)
+
+  override def updateFromString(
+    featureName: String,
+    newValue: String,
+    description: Option[String]
+  ): Future[Boolean] =
+    Future(client.updateFromString(featureName, newValue, description)).flatMap(toFuture)
+
+  override def updateFromByteArray(
+    featureName: String,
+    newValue: Array[Byte],
+    description: Option[String]
+  ): Future[Boolean] =
+    Future(client.updateFromByteArray(featureName, newValue, description)).flatMap(toFuture)
 
   private def toFuture[A](attempt: Attempt[A]): Future[A] = attempt match {
     case Attempt.Successful(value) => Future.successful(value)
     case Attempt.Failure(cause)    => Future.failed(cause)
   }
 
-  private def featureAccessorAdapter[A: FeatureType](featureAccessor: FeatureAccessor[Attempt, A]) =
+  private def featureAccessorAdapter[A: FeatureType](
+    featureAccessor: FeatureAccessor[Attempt, A]
+  ): FeatureAccessor[Future, A] =
     new FeatureAccessor[Future, A] {
       override def value: Future[A] = Future(featureAccessor.value).flatMap(toFuture)
     }

@@ -8,6 +8,9 @@ trait FeatureType[T] {
   def prettyPrint(value: Array[Byte]): Attempt[String]
 
   def fromString(value: String): Attempt[T]
+
+  final def fromStringToRaw(value: String): Attempt[Array[Byte]] =
+    fromString(value).flatMap(converter.toByteArray)
 }
 
 object FeatureType {

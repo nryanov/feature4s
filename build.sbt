@@ -1,6 +1,7 @@
 val zioVersion = "1.0.3"
 val catsVersion = "2.3.0"
 val curatorClientVersion = "5.1.0"
+val tapirVersion = "0.17.5"
 val slf4jVersion = "1.7.30"
 val scalatestVersion = "3.2.0"
 val scalacheckPlusVersion = "3.2.0.0"
@@ -99,3 +100,47 @@ lazy val catsIntegration = project
     )
   )
   .dependsOn(core % "compile->compile;test->test")
+
+lazy val tapir = project
+  .in(file("modules/tapir"))
+  .settings(commonSettings)
+  .settings(
+    name := "tapir",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
+    )
+  )
+  .dependsOn(core % "compile->compile;test->test")
+
+lazy val tapirHttp4s = project
+  .in(file("modules/tapir-http4s"))
+  .settings(commonSettings)
+  .settings(
+    name := "tapir-http4s",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % "compile->compile;test->test")
+
+lazy val tapirAkka = project
+  .in(file("modules/tapir-akka"))
+  .settings(commonSettings)
+  .settings(
+    name := "tapir-akka",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % "compile->compile;test->test")
+
+lazy val tapirZioHttp4s = project
+  .in(file("modules/tapir-zio-http4s"))
+  .settings(commonSettings)
+  .settings(
+    name := "tapir-zio-http4s",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-zio-http4s-server" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % "compile->compile;test->test")

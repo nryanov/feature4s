@@ -4,7 +4,7 @@ import cats.effect.{Blocker, ContextShift, Resource, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import zootoggler.core.configuration.ZtConfiguration
-import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, ZtClient, ZtClientBasic}
+import zootoggler.core.{Attempt, FeatureAccessor, FeatureType, FeatureView, ZtClient, ZtClientBasic}
 
 final class ZtClientCats[F[_]: ContextShift] private (
   client: ZtClient[Attempt],
@@ -34,8 +34,28 @@ final class ZtClientCats[F[_]: ContextShift] private (
     .flatMap(result => toF(result))
     .map(accessor => featureAccessorAdapter(accessor))
 
-  override def update[A: FeatureType](name: String, newValue: A): F[Boolean] =
-    blocker.delay(client.update(name, newValue)).flatMap(toF)
+  override def update[A: FeatureType](
+    name: String,
+    newValue: A,
+    description: Option[String]
+  ): F[Boolean] =
+    blocker.delay(client.update(name, newValue, description)).flatMap(toF)
+
+  override def updateFromString(
+    featureName: String,
+    newValue: String,
+    description: Option[String]
+  ): F[Boolean] =
+    blocker.delay(client.updateFromString(featureName, newValue, description)).flatMap(toF)
+
+  override def updateFromByteArray(
+    featureName: String,
+    newValue: Array[Byte],
+    description: Option[String]
+  ): F[Boolean] =
+    blocker.delay(client.updateFromByteArray(featureName, newValue, description)).flatMap(toF)
+
+  override def featureList(): List[FeatureView] = client.featureList()
 
   override def close(): F[Unit] = blocker.delay(client.close()).flatMap(toF)
 

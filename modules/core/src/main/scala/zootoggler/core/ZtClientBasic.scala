@@ -35,13 +35,14 @@ private class ZtClientBasic(
       _ <- featureMap.register(
         name,
         fullPath,
+        description,
         Attempt.delay(client.create().creatingParentsIfNeeded().forPath(fullPath, value))
       )
-    } yield featureAccessor(Feature(defaultValue, name, description), fullPath)
+    } yield featureAccessor(name, fullPath)
 
     result.catchSome { case _: NodeExistsException =>
       logger.info(s"Feature $name is already registered")
-      Attempt.successful(featureAccessor(Feature(defaultValue, name, description), fullPath))
+      Attempt.successful(featureAccessor(name, fullPath))
     }.tapBoth(
       err => logger.error(s"Error happened while register feature: $name", err),
       _ => logger.info(s"Feature $name was successfully registered")
@@ -102,6 +103,8 @@ private class ZtClientBasic(
     } yield feature
   }
 
+  override def featureList(): List[FeatureView] = featureMap.featureList()
+
   override def close(): Attempt[Unit] = {
     logger.debug("Closing zookeeper client")
     Attempt.delay(client.close())
@@ -110,7 +113,7 @@ private class ZtClientBasic(
     _ => logger.debug("Client was closed successfully")
   )
 
-  override def update[A](name: String, newValue: A)(implicit
+  override def update[A](name: String, newValue: A, description: Option[String])(implicit
     ft: FeatureType[A]
   ): Attempt[Boolean] = {
     val fullPath = s"$rootPath/$name"
@@ -123,7 +126,7 @@ private class ZtClientBasic(
     } yield true
 
     featureMap
-      .update(name, fullPath, request)
+      .update(fullPath, description, request)
       .catchSome { case _: BadVersionException =>
         Attempt.successful(false)
       }
@@ -133,15 +136,66 @@ private class ZtClientBasic(
       )
   }
 
+  override def updateFromString(
+    featureName: String,
+    newValue: String,
+    description: Option[String]
+  ): Attempt[Boolean] = {
+    val fullPath = s"$rootPath/$featureName"
+    val stat = new Stat()
+    val request = (data: Array[Byte]) =>
+      for {
+        result <- Attempt.delay(client.getData.storingStatIn(stat).forPath(fullPath))
+        version <- Attempt.fromOption(Option(result)).map(_ => stat.getVersion)
+        _ <- Attempt.delay(client.setData().withVersion(version).forPath(fullPath, data))
+      } yield true
+
+    featureMap
+      .updateFromString(fullPath, newValue, description, request)
+      .tapBoth(
+        err => logger.error(s"Error happened while updating feature: $featureName", err),
+        _ => ()
+      )
+  }
+
+  override def updateFromByteArray(
+    featureName: String,
+    newValue: Array[Byte],
+    description: Option[String]
+  ): Attempt[Boolean] = {
+    val fullPath = s"$rootPath/$featureName"
+    val stat = new Stat()
+    val request = (data: Array[Byte]) =>
+      for {
+        result <- Attempt.delay(client.getData.storingStatIn(stat).forPath(fullPath))
+        version <- Attempt.fromOption(Option(result)).map(_ => stat.getVersion)
+        _ <- Attempt.delay(client.setData().withVersion(version).forPath(fullPath, data))
+      } yield true
+
+    featureMap
+      .updateFromByteArray(fullPath, newValue, description, request)
+      .tapBoth(
+        err => logger.error(s"Error happened while updating feature: $featureName", err),
+        _ => ()
+      )
+  }
+
   private def featureAccessor[A](
-    feature: Feature[A],
+    name: String,
     fullPath: String
   )(implicit ft: FeatureType[A]): FeatureAccessor[Attempt, A] =
     new FeatureAccessor[Attempt, A] {
-      override def value: Attempt[A] = for {
-        element <- Attempt.fromOption(Option(cache.get(fullPath).orElse(null)))
-        currentValue <- ft.converter.fromByteArray(element.getData)
-      } yield currentValue
+      override def value: Attempt[A] = {
+        val request = for {
+          element <- Attempt.fromOption(Option(cache.get(fullPath).orElse(null)))
+          currentValue <- ft.converter.fromByteArray(element.getData)
+        } yield currentValue
+
+        request.tapBoth(
+          err => logger.error(s"Error happened while getting actual feature value: $name", err),
+          _ => ()
+        )
+      }
     }
 }
 
