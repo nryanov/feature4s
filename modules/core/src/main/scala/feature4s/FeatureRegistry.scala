@@ -3,23 +3,23 @@ package feature4s
 import feature4s.monad.MonadError
 
 trait FeatureRegistry[F[_]] {
-  def register[A: FeatureType](
+  def register(
     name: String,
-    defaultValue: A,
+    enable: Boolean,
     description: Option[String]
-  ): F[Feature[F, A]]
+  ): F[Feature[F]]
 
-  def recreate[A: FeatureType](
+  def recreate(
     name: String,
-    value: A,
+    enable: Boolean,
     description: Option[String]
-  ): F[Feature[F, A]]
+  ): F[Feature[F]]
 
-  def update(name: String, value: String): F[Unit]
+  def update(name: String, enable: Boolean): F[Unit]
 
   def updateInfo(name: String, description: String): F[Unit]
 
-  def featureList(): F[List[Feature[F, _]]]
+  def featureList(): F[List[Feature[F]]]
 
   def isExist(name: String): F[Boolean]
 

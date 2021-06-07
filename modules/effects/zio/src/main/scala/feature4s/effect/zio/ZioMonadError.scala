@@ -1,0 +1,24 @@
+package feature4s.effect.zio
+
+import zio._
+import zio.blocking._
+import feature4s.monad.MonadError
+
+final class ZioMonadError(blocking: Blocking.Service) extends MonadError[Task] {
+  override def pure[A](value: A): Task[A] = Task.succeed(value)
+
+  override def map[A, B](fa: Task[A])(f: A => B): Task[B] = fa.map(f)
+
+  override def flatMap[A, B](fa: Task[A])(f: A => Task[B]): Task[B] = fa.flatMap(f)
+
+  override def raiseError[A](error: Throwable): Task[A] = Task.fail(error)
+
+  override def mapError[A](fa: Task[A])(f: Throwable => Throwable): Task[A] =
+    fa.mapError(f)
+
+  override def void[A](fa: Task[A]): Task[Unit] = fa.unit
+
+  override def eval[A](f: => A): Task[A] = blocking.effectBlocking(f)
+
+  override def unit: Task[Unit] = Task.unit
+}

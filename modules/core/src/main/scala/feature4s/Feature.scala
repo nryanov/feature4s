@@ -1,8 +1,7 @@
 package feature4s
 
-final case class Feature[F[_], A](
+final case class Feature[F[_]](
   name: String,
-  value: () => F[A],
-  featureType: FeatureType[A],
+  isEnable: () => F[Boolean],
   description: Option[String]
 )

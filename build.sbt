@@ -1,10 +1,12 @@
 lazy val kindProjectorVersion = "0.13.0"
-lazy val enumeratumVersion = "1.6.1"
 // effect
 lazy val zioVersion = "1.0.3"
 lazy val catsVersion = "2.3.0"
 // clients
 lazy val curatorClientVersion = "5.1.0"
+lazy val lettuceVersion = "6.1.2.RELEASE"
+lazy val redissonVersion = "3.15.5"
+lazy val aerospikeClientVersion = "5.1.2"
 // openapi
 lazy val tapirVersion = "0.17.5"
 // logging
@@ -100,7 +102,6 @@ lazy val core = project
   .settings(moduleName := "feature4s-core")
   .settings(
     libraryDependencies ++= Seq(
-      "com.beachape" %% "enumeratum" % enumeratumVersion,
       "org.slf4j" % "slf4j-api" % slf4jApiVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.scalatestplus" %% "scalacheck-1-14" % scalacheckPlusVersion % Test,
@@ -132,6 +133,87 @@ lazy val zio = project
   )
   .dependsOn(core % compileAndTest)
 
+lazy val redisCommon = project
+  .in(file("modules/redis"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-redis")
+  .dependsOn(core % compileAndTest)
+
+lazy val lettuce = project
+  .in(file("modules/redis/lettuce"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-lettuce")
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.lettuce" % "lettuce-core" % lettuceVersion
+    )
+  )
+  .dependsOn(redisCommon % compileAndTest)
+
+lazy val lettuceCats = project
+  .in(file("modules/redis/lettuce/cats"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-lettuce-cats")
+  .dependsOn(lettuce % compileAndTest)
+  .dependsOn(cats % compileAndTest)
+
+lazy val lettuceZio = project
+  .in(file("modules/redis/lettuce/zio"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-lettuce-zio")
+  .dependsOn(lettuce % compileAndTest)
+  .dependsOn(zio % compileAndTest)
+
+lazy val redisson = project
+  .in(file("modules/redis/redisson"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-redisson")
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.redisson" % "redisson" % redissonVersion
+    )
+  )
+  .dependsOn(redisCommon % compileAndTest)
+
+lazy val redissonCats = project
+  .in(file("modules/redis/redisson/cats"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-redisson-cats")
+  .dependsOn(redisson % compileAndTest)
+  .dependsOn(cats % compileAndTest)
+
+lazy val redissonZio = project
+  .in(file("modules/redis/redisson/zio"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-redisson-zio")
+  .dependsOn(redisson % compileAndTest)
+  .dependsOn(zio % compileAndTest)
+
+lazy val aerospike = project
+  .in(file("modules/aerospike"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-aerospike")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.aerospike" % "aerospike-client" % aerospikeClientVersion
+    )
+  )
+  .dependsOn(core % compileAndTest)
+
+lazy val aerospikeCats = project
+  .in(file("modules/aerospike/cats"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-aerospike-cats")
+  .dependsOn(aerospike % compileAndTest)
+  .dependsOn(cats % compileAndTest)
+
+lazy val aerospikeZio = project
+  .in(file("modules/aerospike/zio"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-aerospike-zio")
+  .dependsOn(aerospike % compileAndTest)
+  .dependsOn(zio % compileAndTest)
+
 lazy val zookeeper = project
   .in(file("modules/zookeeper"))
   .settings(allSettings)
@@ -157,7 +239,7 @@ lazy val tapir = project
   .dependsOn(core % compileAndTest)
 
 lazy val tapirHttp4s = project
-  .in(file("modules/tapir-http4s"))
+  .in(file("modules/tapir/http4s"))
   .settings(allSettings)
   .settings(
     name := "tapir-http4s",
@@ -168,7 +250,7 @@ lazy val tapirHttp4s = project
   .dependsOn(tapir % compileAndTest)
 
 lazy val tapirAkka = project
-  .in(file("modules/tapir-akka"))
+  .in(file("modules/tapir/akka"))
   .settings(allSettings)
   .settings(
     name := "tapir-akka",
@@ -179,7 +261,7 @@ lazy val tapirAkka = project
   .dependsOn(tapir % compileAndTest)
 
 lazy val tapirZioHttp4s = project
-  .in(file("modules/tapir-zio-http4s"))
+  .in(file("modules/tapir/zio-http4s"))
   .settings(allSettings)
   .settings(
     name := "tapir-zio-http4s",
