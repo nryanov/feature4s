@@ -43,4 +43,42 @@ class FutureMonadAsyncError(implicit ec: ExecutionContext) extends MonadAsyncErr
 
     p.future
   }
+
+  override def ifM[A](
+    fcond: Future[Boolean]
+  )(ifTrue: => Future[A], ifFalse: => Future[A]): Future[A] =
+    fcond.flatMap { flag =>
+      if (flag) ifTrue
+      else ifFalse
+    }
+
+  override def whenA[A](cond: Boolean)(f: => Future[A]): Future[Unit] =
+    if (cond) f.map(_ => ())
+    else unit
+
+  override def guarantee[A](f: => Future[A])(g: => Future[Unit]): Future[A] = {
+    val p = Promise[A]()
+
+    def tryF = Try(g) match {
+      case Failure(exception) => Future.failed(exception)
+      case Success(value)     => value
+    }
+
+    f.onComplete {
+      case Failure(exception) =>
+        tryF.flatMap(_ => Future.failed(exception)).onComplete(r => p.complete(r))
+      case Success(value) => tryF.map(_ => value).onComplete(r => p.complete(r))
+    }
+
+    p.future
+  }
+
+  // sequential execution
+  override def traverse[A, B](list: List[A])(f: A => Future[B]): Future[List[B]] =
+    list.foldLeft(Future.successful(List.empty[B])) { case (state, a) =>
+      for {
+        s <- state
+        b <- f(a)
+      } yield b :: s
+    }
 }

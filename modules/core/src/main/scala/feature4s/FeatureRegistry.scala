@@ -19,11 +19,13 @@ trait FeatureRegistry[F[_]] {
 
   def updateInfo(name: String, description: String): F[Unit]
 
-  def featureList(): F[List[Feature[F]]]
+  def featureList(): F[List[FeatureState]]
 
   def isExist(name: String): F[Boolean]
 
   def remove(name: String): F[Boolean]
+
+  def close(): F[Unit]
 
   def monadError: MonadError[F]
 }

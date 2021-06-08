@@ -1,6 +1,8 @@
 package feature4s.effect.cats
 
 import cats.effect.{Blocker, ContextShift, Sync}
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import feature4s.monad.MonadError
 
 final class CatsMonadError[F[_]: ContextShift](blocker: Blocker)(implicit F: Sync[F])
@@ -23,4 +25,20 @@ final class CatsMonadError[F[_]: ContextShift](blocker: Blocker)(implicit F: Syn
   override def eval[A](f: => A): F[A] = blocker.delay(f)
 
   override def unit: F[Unit] = F.unit
+
+  override def ifM[A](fcond: F[Boolean])(ifTrue: => F[A], ifFalse: => F[A]): F[A] =
+    F.ifM(fcond)(ifTrue, ifFalse)
+
+  override def whenA[A](cond: Boolean)(f: => F[A]): F[Unit] =
+    F.whenA(cond)(f)
+
+  override def guarantee[A](f: => F[A])(g: => F[Unit]): F[A] = F.guarantee(f)(g)
+
+  override def traverse[A, B](list: List[A])(f: A => F[B]): F[List[B]] =
+    list.foldLeft(F.pure(List.empty[B])) { case (state, a) =>
+      for {
+        s <- state
+        b <- f(a)
+      } yield b :: s
+    }
 }

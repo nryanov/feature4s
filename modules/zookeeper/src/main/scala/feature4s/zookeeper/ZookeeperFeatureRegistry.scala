@@ -1,6 +1,6 @@
 package feature4s.zookeeper
 
-import feature4s.{Feature, FeatureRegistry}
+import feature4s.{Feature, FeatureRegistry, FeatureState}
 import feature4s.monad.MonadError
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.CuratorCache
@@ -21,11 +21,13 @@ abstract class ZookeeperFeatureRegistry[F[_]](
 
   override def updateInfo(name: String, description: String): F[Unit] = ???
 
-  override def featureList(): F[List[Feature[F]]] = ???
+  override def featureList(): F[List[FeatureState]] = ???
 
   override def isExist(name: String): F[Boolean] = ???
 
   override def remove(name: String): F[Boolean] = ???
+
+  override def close(): F[Unit] = ???
 
   override def monadError: MonadError[F] = ???
 }

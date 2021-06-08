@@ -1,7 +1,7 @@
 package feature4s.redis.lettuce
 
-import feature4s.{Feature, FeatureRegistry}
-import feature4s.monad.MonadAsyncError
+import feature4s.{Feature, FeatureRegistry, FeatureState}
+import feature4s.monad.{MonadAsyncError, MonadError}
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
 
@@ -22,7 +22,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
 
   override def updateInfo(name: String, description: String): F[Unit] = ???
 
-  override def featureList(): F[List[Feature[F]]] = ???
+  override def featureList(): F[List[FeatureState]] = ???
 
   override def isExist(name: String): F[Boolean] = ???
 

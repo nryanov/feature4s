@@ -4,6 +4,7 @@ lazy val zioVersion = "1.0.3"
 lazy val catsVersion = "2.3.0"
 // clients
 lazy val curatorClientVersion = "5.1.0"
+lazy val jedisVersion = "3.6.0"
 lazy val lettuceVersion = "6.1.2.RELEASE"
 lazy val redissonVersion = "3.15.5"
 lazy val aerospikeClientVersion = "5.1.2"
@@ -138,6 +139,31 @@ lazy val redisCommon = project
   .settings(allSettings)
   .settings(moduleName := "feature4s-redis")
   .dependsOn(core % compileAndTest)
+
+lazy val jedis = project
+  .in(file("modules/redis/jedis"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-jedis")
+  .settings(
+    libraryDependencies ++= Seq(
+      "redis.clients" % "jedis" % jedisVersion
+    )
+  )
+  .dependsOn(redisCommon % compileAndTest)
+
+lazy val jedisCats = project
+  .in(file("modules/redis/jedis/cats"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-jedis-cats")
+  .dependsOn(jedis % compileAndTest)
+  .dependsOn(cats % compileAndTest)
+
+lazy val jedisZio = project
+  .in(file("modules/redis/jedis/zio"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-jedis-zio")
+  .dependsOn(jedis % compileAndTest)
+  .dependsOn(zio % compileAndTest)
 
 lazy val lettuce = project
   .in(file("modules/redis/lettuce"))

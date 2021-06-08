@@ -20,4 +20,21 @@ object IdMonadError extends MonadError[Id] {
   override def void[A](fa: Id[A]): Id[Unit] = unit
 
   override def eval[A](f: => A): Id[A] = f
+
+  override def ifM[A](
+    fcond: Id[Boolean]
+  )(ifTrue: => Id[A], ifFalse: => Id[A]): Id[A] =
+    if (fcond) ifTrue
+    else ifFalse
+
+  override def whenA[A](cond: Boolean)(f: => Id[A]): Id[Unit] =
+    if (cond) f
+    else unit
+
+  override def guarantee[A](f: => Id[A])(g: => Id[Unit]): Id[A] =
+    try f
+    finally g
+
+  override def traverse[A, B](list: List[A])(f: A => Id[B]): Id[List[B]] =
+    list.map(f)
 }

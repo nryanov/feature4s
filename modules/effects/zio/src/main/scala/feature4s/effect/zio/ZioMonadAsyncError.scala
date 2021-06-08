@@ -38,4 +38,15 @@ final class ZioMonadAsyncError extends MonadAsyncError[Task] {
   override def eval[A](f: => A): Task[A] = Task.effect(f)
 
   override def unit: Task[Unit] = Task.unit
+
+  override def ifM[A](fcond: Task[Boolean])(ifTrue: => Task[A], ifFalse: => Task[A]): Task[A] =
+    Task.ifM(fcond)(ifTrue, ifFalse)
+
+  override def whenA[A](cond: Boolean)(f: => Task[A]): Task[Unit] = Task.when(cond)(f)
+
+  override def guarantee[A](f: => Task[A])(g: => Task[Unit]): Task[A] =
+    f.ensuring(g.ignore)
+
+  override def traverse[A, B](list: List[A])(f: A => Task[B]): Task[List[B]] =
+    Task.foreach(list)(f)
 }

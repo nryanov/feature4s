@@ -11,8 +11,6 @@ package object syntax {
     // zipRight
     def *>[B](f: => F[B])(implicit F: MonadError[F]): F[B] = F.flatMap(fa)(_ => f)
 
-    def tap[B](f: A => F[B])(implicit F: MonadError[F]): F[A] = F.tap(fa)(f)
-
     def mapError(f: Throwable => Throwable)(implicit F: MonadError[F]): F[A] =
       F.mapError(fa)(f)
 

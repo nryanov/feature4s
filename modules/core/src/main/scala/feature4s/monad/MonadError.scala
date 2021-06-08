@@ -13,7 +13,15 @@ trait MonadError[F[_]] {
 
   def mapError[A](fa: F[A])(f: Throwable => Throwable): F[A]
 
+  def ifM[A](fcond: F[Boolean])(ifTrue: => F[A], ifFalse: => F[A]): F[A]
+
+  def whenA[A](cond: Boolean)(f: => F[A]): F[Unit]
+
   def void[A](fa: F[A]): F[Unit]
 
   def eval[A](f: => A): F[A]
+
+  def guarantee[A](f: => F[A])(g: => F[Unit]): F[A]
+
+  def traverse[A, B](list: List[A])(f: A => F[B]): F[List[B]]
 }
