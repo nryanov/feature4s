@@ -6,7 +6,7 @@ import feature4s.{FeatureRegistry, FeatureRegistrySpec, Id}
 import scala.concurrent.Future
 import scala.util.Try
 
-class LettuceSyncFeatureRegistrySpec extends FeatureRegistrySpec[Id] with LettuceClient {
+class LettuceSyncFeatureRegistrySpec extends FeatureRegistrySpec[Id] with LettuceClientCreator {
   override def featureRegistry(): FeatureRegistry[Id] =
     LettuceSyncFeatureRegistry(redisClient, DefaultNamespace)
 

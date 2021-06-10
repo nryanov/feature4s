@@ -5,7 +5,7 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.resource.DefaultClientResources
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-trait LettuceClient extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
+trait LettuceClientCreator extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   var redisClient: RedisClient = _
 

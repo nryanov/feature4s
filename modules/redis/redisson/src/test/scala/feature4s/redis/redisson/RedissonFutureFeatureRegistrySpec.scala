@@ -5,7 +5,9 @@ import feature4s.redis.DefaultNamespace
 
 import scala.concurrent.Future
 
-class RedissonFutureFeatureRegistrySpec extends FeatureRegistrySpec[Future] with RedissonClient {
+class RedissonFutureFeatureRegistrySpec
+    extends FeatureRegistrySpec[Future]
+    with RedissonClientCreator {
   override def featureRegistry(): FeatureRegistry[Future] =
     RedissonFutureFeatureRegistry(redisClient, DefaultNamespace)
 

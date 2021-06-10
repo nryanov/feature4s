@@ -17,6 +17,15 @@ object IdMonadError extends MonadError[Id] {
       case e: Throwable => raiseError(f(e))
     }
 
+  override def handleErrorWith[A](fa: => Id[A])(
+    pf: PartialFunction[Throwable, Id[A]]
+  ): Id[A] =
+    try fa
+    catch {
+      case e: Throwable if pf.isDefinedAt(e) => pf(e)
+      case e: Throwable                      => raiseError(pure(e))
+    }
+
   override def void[A](fa: Id[A]): Id[Unit] = unit
 
   override def eval[A](f: => A): Id[A] = f

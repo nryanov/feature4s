@@ -6,7 +6,7 @@ import org.redisson.config.Config
 import org.redisson.api.{RedissonClient => JRedissonClient}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-trait RedissonClient extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
+trait RedissonClientCreator extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   var redisClient: JRedissonClient = _
 

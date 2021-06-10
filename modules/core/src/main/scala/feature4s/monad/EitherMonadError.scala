@@ -21,6 +21,14 @@ object EitherMonadError extends MonadError[Either[Throwable, *]] {
       case _           => fa
     }
 
+  override def handleErrorWith[A](
+    fa: => Either[Throwable, A]
+  )(pf: PartialFunction[Throwable, Either[Throwable, A]]): Either[Throwable, A] =
+    fa match {
+      case Left(value) if pf.isDefinedAt(value) => suspend(pf(value))
+      case _                                    => fa
+    }
+
   override def void[A](fa: Either[Throwable, A]): Either[Throwable, Unit] = fa.map(_ => ())
 
   override def eval[A](f: => A): Either[Throwable, A] = Try(f).toEither

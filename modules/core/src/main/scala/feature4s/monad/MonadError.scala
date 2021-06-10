@@ -13,6 +13,8 @@ trait MonadError[F[_]] {
 
   def mapError[A](fa: F[A])(f: Throwable => Throwable): F[A]
 
+  def handleErrorWith[A](fa: => F[A])(pf: PartialFunction[Throwable, F[A]]): F[A]
+
   def ifM[A](fcond: F[Boolean])(ifTrue: => F[A], ifFalse: => F[A]): F[A]
 
   def whenA[A](cond: Boolean)(f: => F[A]): F[Unit]
@@ -24,4 +26,8 @@ trait MonadError[F[_]] {
   def guarantee[A](f: => F[A])(g: => F[Unit]): F[A]
 
   def traverse[A, B](list: List[A])(f: A => F[B]): F[List[B]]
+
+  def suspend[A](fa: => F[A]): F[A] = flatten(eval(fa))
+
+  def flatten[A](fa: F[F[A]]): F[A] = flatMap(fa)(v => identity(v))
 }

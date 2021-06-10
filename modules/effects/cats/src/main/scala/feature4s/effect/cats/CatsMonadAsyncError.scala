@@ -25,6 +25,9 @@ final class CatsMonadAsyncError[F[_]](implicit F: Concurrent[F]) extends MonadAs
       f(err)
     }
 
+  override def handleErrorWith[A](fa: => F[A])(pf: PartialFunction[Throwable, F[A]]): F[A] =
+    F.handleErrorWith(fa)(pf)
+
   override def void[A](fa: F[A]): F[Unit] = F.void(fa)
 
   override def eval[A](f: => A): F[A] = F.delay(f)

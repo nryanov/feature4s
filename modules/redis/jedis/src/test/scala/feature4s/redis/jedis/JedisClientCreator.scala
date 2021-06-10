@@ -5,7 +5,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 import redis.clients.jedis.{Jedis, JedisPool}
 
-trait JedisClient extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
+trait JedisClientCreator extends RedisBackend with BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   var jedisPool: JedisPool = _
 

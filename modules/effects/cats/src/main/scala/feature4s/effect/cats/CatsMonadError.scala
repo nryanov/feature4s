@@ -20,6 +20,9 @@ final class CatsMonadError[F[_]: ContextShift](blocker: Blocker)(implicit F: Syn
       f(err)
     }
 
+  override def handleErrorWith[A](fa: => F[A])(pf: PartialFunction[Throwable, F[A]]): F[A] =
+    F.handleErrorWith(fa)(pf)
+
   override def void[A](fa: F[A]): F[Unit] = F.void(fa)
 
   override def eval[A](f: => A): F[A] = blocker.delay(f)

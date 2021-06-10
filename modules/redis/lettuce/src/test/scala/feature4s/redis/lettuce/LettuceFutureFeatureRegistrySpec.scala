@@ -5,7 +5,9 @@ import feature4s.redis.DefaultNamespace
 
 import scala.concurrent.Future
 
-class LettuceFutureFeatureRegistrySpec extends FeatureRegistrySpec[Future] with LettuceClient {
+class LettuceFutureFeatureRegistrySpec
+    extends FeatureRegistrySpec[Future]
+    with LettuceClientCreator {
   override def featureRegistry(): FeatureRegistry[Future] =
     LettuceFutureFeatureRegistry(redisClient, DefaultNamespace)
 
