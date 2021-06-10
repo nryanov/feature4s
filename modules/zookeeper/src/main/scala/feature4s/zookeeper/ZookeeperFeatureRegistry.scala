@@ -19,8 +19,6 @@ abstract class ZookeeperFeatureRegistry[F[_]](
 
   override def update(name: String, enable: Boolean): F[Unit] = ???
 
-  override def updateInfo(name: String, description: String): F[Unit] = ???
-
   override def featureList(): F[List[FeatureState]] = ???
 
   override def isExist(name: String): F[Boolean] = ???

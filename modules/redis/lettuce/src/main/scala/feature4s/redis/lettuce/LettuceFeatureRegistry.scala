@@ -34,12 +34,26 @@ abstract class LettuceFeatureRegistry[F[_]](
       else monad.eval(value.toBoolean)
     }
 
+  private def updateInfo(name: String, description: String): F[Unit] =
+    monad
+      .eval(
+        syncCommands.hset(
+          key(name, namespace),
+          Map(
+            FeatureNameFieldName -> name,
+            DescriptionFieldName -> description
+          ).asJava
+        )
+      )
+      .void
+
   override def recreate(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
     monad
       .eval(
         syncCommands.hmset(
           key(name, namespace),
           Map(
+            FeatureNameFieldName -> name,
             ValueFieldName -> enable.toString,
             DescriptionFieldName -> description.getOrElse("")
           ).asJava
@@ -47,13 +61,12 @@ abstract class LettuceFeatureRegistry[F[_]](
       )
       .map(_ => Feature(name, () => valueAccessor(name), description))
 
-  // todo: raise error if field (key) does not exists before
   override def update(name: String, enable: Boolean): F[Unit] =
-    monad.eval(syncCommands.hset(key(name, namespace), ValueFieldName, enable.toString)).void
-
-  // todo: raise error if field (key) does not exists before
-  override def updateInfo(name: String, description: String): F[Unit] =
-    monad.eval(syncCommands.hset(key(name, namespace), DescriptionFieldName, description)).void
+    monad.ifM(isExist(name))(
+      ifTrue =
+        monad.eval(syncCommands.hset(key(name, namespace), ValueFieldName, enable.toString)).void,
+      ifFalse = monad.raiseError(FeatureNotFound(name))
+    )
 
   override def featureList(): F[List[FeatureState]] = {
     val filter = ScanArgs.Builder.matches(keyFilter(namespace)).limit(ScanLimit)
@@ -72,11 +85,13 @@ abstract class LettuceFeatureRegistry[F[_]](
       .flatMap { keys =>
         monad.traverse(keys)(key =>
           monad
-            .eval(syncCommands.hmget(key, ValueFieldName, DescriptionFieldName))
+            .eval(
+              syncCommands.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
+            )
             .map(fields => fields.asScala.map(f => f.getKey -> f.getValue).toMap)
             .map(fields =>
               FeatureState(
-                key,
+                fields.getOrElse(FeatureNameFieldName, "empty_feature_name"),
                 fields.get(ValueFieldName).exists(_.toBoolean),
                 fields.get(DescriptionFieldName).filter(_.nonEmpty)
               )

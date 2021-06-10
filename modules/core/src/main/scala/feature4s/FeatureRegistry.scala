@@ -17,8 +17,6 @@ trait FeatureRegistry[F[_]] {
 
   def update(name: String, enable: Boolean): F[Unit]
 
-  def updateInfo(name: String, description: String): F[Unit]
-
   def featureList(): F[List[FeatureState]]
 
   def isExist(name: String): F[Boolean]

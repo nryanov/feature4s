@@ -1,14 +1,14 @@
-package feature4s.redis.lettuce
+package feature4s.redis.redisson
 
-import feature4s.redis.DefaultNamespace
 import feature4s.{FeatureRegistry, FeatureRegistrySpec, Id}
+import feature4s.redis.DefaultNamespace
 
 import scala.concurrent.Future
 import scala.util.Try
 
-class LettuceSyncFeatureRegistrySpec extends FeatureRegistrySpec[Id] with LettuceClient {
+class RedissonSyncFeatureRegistrySpec extends FeatureRegistrySpec[Id] with RedissonClient {
   override def featureRegistry(): FeatureRegistry[Id] =
-    LettuceSyncFeatureRegistry(redisClient, DefaultNamespace)
+    RedissonSyncFeatureRegistry(redisClient, DefaultNamespace)
 
   override def toFuture[A](v: => Id[A]): Future[A] = Future.fromTry(Try(v))
 }
