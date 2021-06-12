@@ -95,7 +95,25 @@ lazy val feature4s =
     .settings(name := "feature4s")
     .settings(allSettings)
     .settings(noPublish)
-    .aggregate(core)
+    .aggregate(
+      core,
+      cats,
+      zio,
+      redisCommon,
+      jedis,
+      jedisCats,
+      jedisZio,
+      lettuce,
+      lettuceCats,
+      lettuceZio,
+      redisson,
+      redissonCats,
+      redissonZio,
+      aerospike,
+      aerospikeCats,
+      aerospikeZio,
+      zookeeper
+    )
 
 lazy val core = project
   .in(file("modules/core"))
@@ -252,6 +270,20 @@ lazy val zookeeper = project
     )
   )
   .dependsOn(core % compileAndTest)
+
+lazy val zookeeperCats = project
+  .in(file("modules/zookeeper/cats"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-zookeeper-cats")
+  .dependsOn(zookeeper % compileAndTest)
+  .dependsOn(cats % compileAndTest)
+
+lazy val zookeeperZio = project
+  .in(file("modules/zookeeper/zio"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-zookeeper-zio")
+  .dependsOn(zookeeper % compileAndTest)
+  .dependsOn(zio % compileAndTest)
 
 lazy val tapir = project
   .in(file("modules/tapir"))
