@@ -112,7 +112,11 @@ lazy val feature4s =
       aerospike,
       aerospikeCats,
       aerospikeZio,
-      zookeeper
+      zookeeper,
+      tapir,
+      tapirAkka,
+      tapirHttp4s,
+      tapirZioHttp4s
     )
 
 lazy val core = project
