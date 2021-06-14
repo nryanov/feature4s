@@ -10,6 +10,8 @@ lazy val redissonVersion = "3.15.5"
 lazy val aerospikeClientVersion = "5.1.2"
 // openapi
 lazy val tapirVersion = "0.17.5"
+lazy val akkaVersion = "2.6.11"
+lazy val akkaHttpVersion = "10.2.2"
 // logging
 lazy val slf4jApiVersion = "1.7.30"
 // test
@@ -295,7 +297,8 @@ lazy val tapir = project
   .settings(
     name := "tapir",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
+      "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion,
+      "com.softwaremill.sttp.tapir" %% "tapir-server-tests" % tapirVersion % Test
     )
   )
   .dependsOn(core % compileAndTest)
@@ -317,7 +320,9 @@ lazy val tapirAkka = project
   .settings(
     name := "tapir-akka",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % tapirVersion
+      "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % tapirVersion,
+      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
+      "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
     )
   )
   .dependsOn(tapir % compileAndTest)

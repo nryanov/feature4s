@@ -1,6 +1,7 @@
 package feature4s.tapir.akka
 
-import feature4s.{FeatureRegistry, FeatureState}
+import akka.http.scaladsl.server.Route
+import feature4s._
 import feature4s.tapir.{FeatureRegistryError, UpdateFeatureRequest}
 import sttp.model.StatusCode
 import sttp.tapir.Codec.JsonCodec
@@ -20,11 +21,11 @@ final class AkkaFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Future])(
   private val baseEndpoint: Endpoint[Unit, (StatusCode, FeatureRegistryError), Unit, Any] =
     endpoint.in("features").errorOut(statusCode.and(anyJsonBody[FeatureRegistryError]))
 
-  private val featureListEndpoint
+  private[tapir] val featureListEndpoint
     : Endpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState], Any] =
     baseEndpoint.get.out(anyJsonBody[List[FeatureState]]).description("Get registered feature list")
 
-  private val updateFeatureEndpoint
+  private[tapir] val updateFeatureEndpoint
     : Endpoint[UpdateFeatureRequest, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.put
       .in(path[String]("featureName"))
@@ -46,24 +47,34 @@ final class AkkaFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Future])(
   private def toRoute[A](fa: Future[A]): Future[Either[(StatusCode, FeatureRegistryError), A]] =
     fa.transformWith {
       case Failure(exception) =>
-        Future.successful(
-          Left(
-            StatusCode.BadRequest,
-            FeatureRegistryError(
-              code = StatusCode.BadRequest.code,
-              reason = exception.getLocalizedMessage
-            )
-          )
-        )
+        exception match {
+          case err: FeatureNotFound => errorResponse(StatusCode.NotFound, err)
+          case err: ClientError     => errorResponse(StatusCode.InternalServerError, err)
+          case err: Throwable       => errorResponse(StatusCode.BadRequest, err)
+        }
       case Success(value) => Future.successful(Right(value))
     }
+
+  private def errorResponse[A](
+    code: StatusCode,
+    reason: Throwable
+  ): Future[Either[(StatusCode, FeatureRegistryError), A]] =
+    Future.successful(
+      Left(
+        code,
+        FeatureRegistryError(
+          code = code.code,
+          reason = reason.getLocalizedMessage
+        )
+      )
+    )
 
   val endpoints = List(
     featureListEndpoint,
     updateFeatureEndpoint
   )
 
-  val route = featureListRoute ~ updateFeatureRoute
+  val route: Route = featureListRoute ~ updateFeatureRoute
 }
 
 object AkkaFeatureRegistryRoutes {

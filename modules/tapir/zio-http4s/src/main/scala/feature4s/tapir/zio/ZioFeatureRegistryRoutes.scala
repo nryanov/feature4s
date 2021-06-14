@@ -1,12 +1,14 @@
 package feature4s.tapir.zio
 
-import feature4s.{FeatureRegistry, FeatureState}
+import feature4s.{ClientError, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.tapir.{FeatureRegistryError, UpdateFeatureRequest}
+import org.http4s.HttpRoutes
 import sttp.model.StatusCode
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.ztapir._
 import sttp.tapir.server.http4s.ztapir.ZHttp4sServerInterpreter
 import zio._
+import zio.clock.Clock
 import zio.interop.catz._
 
 final class ZioFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Task])(implicit
@@ -31,31 +33,36 @@ final class ZioFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Task])(imp
       .description("Update feature value")
 
   private val featureListRoute =
-    ZHttp4sServerInterpreter
-      .from(featureListEndpoint)(_ => toRoute(featureRegistry.featureList()))
-      .toRoutes
+    featureListEndpoint.serverLogic[Task](_ => toRoute(featureRegistry.featureList()))
 
-  private val updateFeatureRoute =
-    ZHttp4sServerInterpreter
-      .from(updateFeatureEndpoint)(request =>
-        toRoute(featureRegistry.update(request.featureName, request.enable).as(StatusCode.Ok))
-      )
-      .toRoutes
+  private val updateFeatureRoute = updateFeatureEndpoint.serverLogic[Task](request =>
+    toRoute(featureRegistry.update(request.featureName, request.enable).as(StatusCode.Ok))
+  )
 
-  private def toRoute[A](fa: Task[A]): ZIO[Any, (StatusCode, FeatureRegistryError), A] =
-    fa.mapError { case err: Throwable =>
-      (
-        StatusCode.BadRequest,
-        FeatureRegistryError(code = StatusCode.BadRequest.code, reason = err.getLocalizedMessage)
-      )
+  private def toRoute[A](fa: Task[A]): Task[Either[(StatusCode, FeatureRegistryError), A]] =
+    fa.map(Right(_)).catchSome {
+      case err: FeatureNotFound => errorResponse[A](StatusCode.NotFound, err)
+      case err: ClientError     => errorResponse[A](StatusCode.InternalServerError, err)
+      case err: Throwable       => errorResponse[A](StatusCode.BadRequest, err)
     }
+
+  private def errorResponse[A](
+    statusCode: StatusCode,
+    err: Throwable
+  ): Task[Either[(StatusCode, FeatureRegistryError), A]] = Task.left {
+    (
+      statusCode,
+      FeatureRegistryError(code = statusCode.code, reason = err.getLocalizedMessage)
+    )
+  }
 
   val endpoints = List(
     featureListEndpoint,
     updateFeatureEndpoint
   )
 
-  val route = List(featureListRoute, updateFeatureRoute)
+  val route: HttpRoutes[ZIO[Any with Has[Clock.Service], Throwable, *]] =
+    ZHttp4sServerInterpreter.from(List(featureListRoute, updateFeatureRoute)).toRoutes
 }
 
 object ZioFeatureRegistryRoutes {
