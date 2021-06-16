@@ -9,7 +9,7 @@ class LettuceFutureFeatureRegistrySpec
     extends FeatureRegistrySpec[Future]
     with LettuceClientCreator {
   override def featureRegistry(): FeatureRegistry[Future] =
-    LettuceFutureFeatureRegistry(redisClient, DefaultNamespace)
+    LettuceFutureFeatureRegistry.useConnection(redisClient.connect(), DefaultNamespace)
 
   override def toFuture[A](v: => Future[A]): Future[A] = v
 }

@@ -44,6 +44,16 @@ object IdMonadError extends MonadError[Id] {
     try f
     finally g
 
+  override def bracket[A, B](acquire: => Id[A])(use: A => Id[B])(release: A => Id[Unit]): Id[B] = {
+    var resource: Id[A] = null.asInstanceOf[Id[A]]
+    try {
+      resource = acquire
+      use(resource)
+    } finally if (resource != null) {
+      release(resource)
+    }
+  }
+
   override def traverse[A, B](list: List[A])(f: A => Id[B]): Id[List[B]] =
     list.map(f)
 }

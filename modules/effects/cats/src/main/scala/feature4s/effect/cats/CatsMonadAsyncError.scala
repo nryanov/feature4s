@@ -42,6 +42,9 @@ final class CatsMonadAsyncError[F[_]](implicit F: Concurrent[F]) extends MonadAs
 
   override def guarantee[A](f: => F[A])(g: => F[Unit]): F[A] = F.guarantee(f)(g)
 
+  override def bracket[A, B](acquire: => F[A])(use: A => F[B])(release: A => F[Unit]): F[B] =
+    F.bracket(acquire)(use)(release)
+
   override def traverse[A, B](list: List[A])(f: A => F[B]): F[List[B]] =
     list.foldLeft(F.pure(List.empty[B])) { case (state, a) =>
       for {

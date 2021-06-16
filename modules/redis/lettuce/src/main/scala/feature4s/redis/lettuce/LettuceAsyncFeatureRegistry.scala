@@ -185,14 +185,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
       () => monad.eval(cf.toCompletableFuture.cancel(true))
     }
 
-  override def close(): F[Unit] = monad.cancelable { cb =>
-    val cf = connection.closeAsync().whenComplete { (_: Void, err: Throwable) =>
-      if (err != null) cb(Left(ClientError(err)))
-      else cb(Right(()))
-    }
-
-    () => monad.eval(cf.cancel(true))
-  }
+  override def close(): F[Unit] = monad.unit
 
   override def monadError: MonadAsyncError[F] = monad
 }

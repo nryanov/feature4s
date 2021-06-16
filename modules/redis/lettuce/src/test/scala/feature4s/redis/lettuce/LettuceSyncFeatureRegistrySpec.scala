@@ -8,7 +8,7 @@ import scala.util.Try
 
 class LettuceSyncFeatureRegistrySpec extends FeatureRegistrySpec[Id] with LettuceClientCreator {
   override def featureRegistry(): FeatureRegistry[Id] =
-    LettuceSyncFeatureRegistry(redisClient, DefaultNamespace)
+    LettuceSyncFeatureRegistry.useConnection(redisClient.connect(), DefaultNamespace)
 
   override def toFuture[A](v: => Id[A]): Future[A] = Future.fromTry(Try(v))
 }

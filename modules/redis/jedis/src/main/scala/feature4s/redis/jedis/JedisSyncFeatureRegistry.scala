@@ -8,6 +8,6 @@ class JedisSyncFeatureRegistry private (pool: JedisPool, namespace: String)
     extends JedisFeatureRegistry[Id](pool = pool, namespace = namespace, monad = IdMonadError)
 
 object JedisSyncFeatureRegistry {
-  def apply(pool: JedisPool, namespace: String): JedisSyncFeatureRegistry =
+  def useClient(pool: JedisPool, namespace: String): JedisSyncFeatureRegistry =
     new JedisSyncFeatureRegistry(pool, namespace)
 }

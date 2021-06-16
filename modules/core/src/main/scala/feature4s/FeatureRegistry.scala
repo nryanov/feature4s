@@ -23,6 +23,10 @@ trait FeatureRegistry[F[_]] {
 
   def remove(name: String): F[Boolean]
 
+  /**
+   * Close only internal resources.
+   * Resources such as connections, clients, etc should be close on client side code
+   */
   def close(): F[Unit]
 
   def monadError: MonadError[F]

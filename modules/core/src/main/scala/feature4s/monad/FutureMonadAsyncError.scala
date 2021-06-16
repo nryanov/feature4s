@@ -63,7 +63,7 @@ class FutureMonadAsyncError(implicit ec: ExecutionContext) extends MonadAsyncErr
   override def guarantee[A](f: => Future[A])(g: => Future[Unit]): Future[A] = {
     val p = Promise[A]()
 
-    def tryF = Try(g) match {
+    def tryF: Future[Unit] = Try(g) match {
       case Failure(exception) => Future.failed(exception)
       case Success(value)     => value
     }
@@ -72,6 +72,33 @@ class FutureMonadAsyncError(implicit ec: ExecutionContext) extends MonadAsyncErr
       case Failure(exception) =>
         tryF.flatMap(_ => Future.failed(exception)).onComplete(r => p.complete(r))
       case Success(value) => tryF.map(_ => value).onComplete(r => p.complete(r))
+    }
+
+    p.future
+  }
+
+  override def bracket[A, B](acquire: => Future[A])(use: A => Future[B])(
+    release: A => Future[Unit]
+  ): Future[B] = {
+    val p = Promise[B]()
+
+    def tryRelease(a: A): Future[Unit] = Try(release(a)) match {
+      case Failure(exception) => Future.failed(exception)
+      case Success(value)     => value
+    }
+
+    def tryUse(a: A): Future[B] = Try(use(a)) match {
+      case Failure(exception) => Future.failed(exception)
+      case Success(value)     => value
+    }
+
+    acquire.onComplete {
+      case Failure(exception) => p.failure(exception)
+      case Success(resource) =>
+        tryUse(resource).onComplete {
+          case Failure(exception) => p.failure(exception)
+          case Success(result)    => tryRelease(resource).map(_ => result).onComplete(p.complete)
+        }
     }
 
     p.future

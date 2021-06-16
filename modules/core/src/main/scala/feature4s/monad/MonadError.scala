@@ -25,6 +25,8 @@ trait MonadError[F[_]] {
 
   def guarantee[A](f: => F[A])(g: => F[Unit]): F[A]
 
+  def bracket[A, B](acquire: => F[A])(use: A => F[B])(release: A => F[Unit]): F[B]
+
   def traverse[A, B](list: List[A])(f: A => F[B]): F[List[B]]
 
   def suspend[A](fa: => F[A]): F[A] = flatten(eval(fa))

@@ -123,7 +123,5 @@ abstract class JedisFeatureRegistry[F[_]](
   override def monadError: MonadError[F] = monad
 
   private def useClient[A](fa: Jedis => F[A]): F[A] =
-    monad.eval(pool.getResource).flatMap { client =>
-      monad.guarantee(fa(client))(monad.eval(client.close()))
-    }
+    monad.bracket(monad.eval(pool.getResource))(fa)(client => monad.eval(client.close()))
 }

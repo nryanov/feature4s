@@ -106,7 +106,7 @@ abstract class LettuceFeatureRegistry[F[_]](
   override def remove(name: String): F[Boolean] =
     monad.eval(syncCommands.unlink(key(name, namespace))).map(_ > 0)
 
-  override def close(): F[Unit] = monad.eval(connection.close())
+  override def close(): F[Unit] = monad.unit
 
   override def monadError: MonadError[F] = monad
 }

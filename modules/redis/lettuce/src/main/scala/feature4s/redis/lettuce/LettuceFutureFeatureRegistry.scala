@@ -1,7 +1,6 @@
 package feature4s.redis.lettuce
 
 import feature4s.monad.FutureMonadAsyncError
-import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,15 +16,12 @@ class LettuceFutureFeatureRegistry private (
     )
 
 object LettuceFutureFeatureRegistry {
-  def apply(
-    client: RedisClient,
+  def useConnection(
+    connection: StatefulRedisConnection[String, String],
     namespace: String
-  )(implicit ec: ExecutionContext): LettuceFutureFeatureRegistry = {
-    val connection = client.connect()
-
+  )(implicit ec: ExecutionContext): LettuceFutureFeatureRegistry =
     new LettuceFutureFeatureRegistry(
       connection = connection,
       namespace = namespace
     )(ec)
-  }
 }
