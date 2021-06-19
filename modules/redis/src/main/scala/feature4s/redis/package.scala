@@ -5,7 +5,7 @@ package object redis {
   val FeatureNameFieldName: String = "name"
   val ValueFieldName: String = "value"
   val DescriptionFieldName: String = "description"
-  val ScanLimit: Int = 1000
+  val ScanLimit: Long = 1000L
 
   def key(featureName: String, namespace: String): String =
     s"$namespace:feature:$featureName"

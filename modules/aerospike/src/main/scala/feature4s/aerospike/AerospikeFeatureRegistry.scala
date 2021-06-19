@@ -2,7 +2,7 @@ package feature4s.aerospike
 
 import com.aerospike.client.{AerospikeClient, AerospikeException, Bin, ResultCode}
 import com.aerospike.client.policy.{RecordExistsAction, WritePolicy}
-import com.aerospike.client.query.Statement
+import com.aerospike.client.query.{KeyRecord, Statement}
 import feature4s.compat.CollectionConverters._
 import feature4s.{Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.monad.MonadError

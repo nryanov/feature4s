@@ -61,10 +61,12 @@ final class AkkaFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Future])(
   ): Future[Either[(StatusCode, FeatureRegistryError), A]] =
     Future.successful(
       Left(
-        code,
-        FeatureRegistryError(
-          code = code.code,
-          reason = reason.getLocalizedMessage
+        (
+          code,
+          FeatureRegistryError(
+            code = code.code,
+            reason = reason.getLocalizedMessage
+          )
         )
       )
     )
