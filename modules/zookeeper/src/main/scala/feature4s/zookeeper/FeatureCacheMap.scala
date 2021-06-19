@@ -1,16 +1,15 @@
 package feature4s.zookeeper
 
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.{ConcurrentHashMap, CountDownLatch}
 
 import feature4s.{ClientError, FeatureNotFound, FeatureState}
 import feature4s.monad.MonadError
+import feature4s.compat.CollectionConverters._
 import feature4s.monad.syntax._
 import feature4s.zookeeper.StateSerDe.stateFromBytes
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.{ChildData, CuratorCacheListener}
 import org.apache.zookeeper.KeeperException.NoNodeException
-
-import scala.collection.concurrent.TrieMap
 
 private[zookeeper] class FeatureCacheMap[F[_]](
   client: CuratorFramework,
@@ -18,26 +17,25 @@ private[zookeeper] class FeatureCacheMap[F[_]](
   zNode: String,
   latch: CountDownLatch
 ) extends CuratorCacheListener {
-  private val featureStates: TrieMap[String, (Boolean, Option[String])] = TrieMap()
+
+  private val featureStates: ConcurrentHashMap[String, (Boolean, Option[String])] =
+    new ConcurrentHashMap()
 
   def featureList: List[FeatureState] = featureStates.map {
     case (featureName, (isEnable, description)) => FeatureState(featureName, isEnable, description)
   }.toList
 
   def setEnable(featureName: String, flag: Boolean): Unit =
-    featureStates.updateWith(featureName) {
-      case Some(value) => Some(flag, value._2)
-      case None        => None
-    }
+    featureStates.computeIfPresent(featureName, (_, current) => (flag, current._2))
 
   def setInfo(featureName: String, description: Option[String]): Unit =
-    featureStates.updateWith(featureName) {
-      case Some(value) => Some(value._1, description)
-      case None        => None
-    }
+    featureStates.computeIfPresent(featureName, (_, current) => (current._1, description))
 
   def setState(featureName: String, flag: Boolean, description: Option[String]): Unit =
-    featureStates.updateWith(featureName)(_ => Some(flag, description))
+    featureStates.put(featureName, (flag, description))
+
+  def remove(featureName: String): Unit =
+    featureStates.remove(featureName)
 
   override def event(
     eventType: CuratorCacheListener.Type,
@@ -75,7 +73,7 @@ private[zookeeper] class FeatureCacheMap[F[_]](
 
   def featureAccessor(featureName: String): () => F[Boolean] =
     () =>
-      featureStates.get(featureName) match {
+      Option(featureStates.get(featureName)) match {
         case Some(value) => monad.pure(value._1)
         case None =>
           val path = s"$zNode/$featureName"

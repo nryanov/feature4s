@@ -62,10 +62,12 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
   ): F[Either[(StatusCode, FeatureRegistryError), A]] =
     F.pure(
       Left(
-        code,
-        FeatureRegistryError(
-          code = code.code,
-          reason = reason.getLocalizedMessage
+        (
+          code,
+          FeatureRegistryError(
+            code = code.code,
+            reason = reason.getLocalizedMessage
+          )
         )
       )
     )

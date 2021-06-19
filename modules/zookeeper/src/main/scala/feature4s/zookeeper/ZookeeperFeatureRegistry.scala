@@ -146,7 +146,12 @@ abstract class ZookeeperFeatureRegistry[F[_]](
 
   override def remove(name: String): F[Boolean] = {
     val path = s"$zNode/$name"
-    monad.handleErrorWith(monad.eval(client.delete().guaranteed().forPath(path)).map(_ => true)) {
+    monad.handleErrorWith(
+      monad
+        .eval(client.delete().guaranteed().forPath(path))
+        .map(_ => true)
+        .flatMap(result => monad.eval(cacheMap.remove(name)).map(_ => result))
+    ) {
       case _: NoNodeException => monad.pure(false)
       case err: Throwable     => monad.raiseError(err)
     }

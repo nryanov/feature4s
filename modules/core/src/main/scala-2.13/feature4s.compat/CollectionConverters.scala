@@ -2,7 +2,7 @@ package feature4s.compat
 
 import scala.jdk.CollectionConverters._
 
-object CollectionConverters {
+private[feature4s] object CollectionConverters {
   implicit def scalaMapToJava[A, B](map: Map[A, B]): java.util.Map[A, B] = map.asJava
 
   implicit def javaMapToScala[A, B](map: java.util.Map[A, B]): Map[A, B] = map.asScala.toMap
