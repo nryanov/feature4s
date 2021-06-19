@@ -74,6 +74,7 @@ def compilerOptions(scalaVersion: String) = Seq(
 lazy val scala212CompilerOptions = Seq(
   "-Yno-adapted-args",
   "-Ywarn-unused-import",
+  "-Ypartial-unification",
   "-Xfuture"
 )
 
