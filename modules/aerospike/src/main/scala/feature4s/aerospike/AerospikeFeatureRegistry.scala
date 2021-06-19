@@ -31,7 +31,7 @@ abstract class AerospikeFeatureRegistry[F[_]](
         )
       ) {
         case err: AerospikeException if err.getResultCode == ResultCode.KEY_EXISTS_ERROR =>
-          monad.pure()
+          monad.unit
       }
       .flatMap(_ => updateInfo(name, description.getOrElse("")))
       .map(_ => Feature(name, () => valueAccessor(name), description))
