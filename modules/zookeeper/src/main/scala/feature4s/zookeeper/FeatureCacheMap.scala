@@ -34,6 +34,9 @@ private[zookeeper] class FeatureCacheMap[F[_]](
   def setState(featureName: String, flag: Boolean, description: Option[String]): Unit =
     featureStates.put(featureName, (flag, description))
 
+  def remove(featureName: String): Unit =
+    featureStates.remove(featureName)
+
   override def event(
     eventType: CuratorCacheListener.Type,
     oldData: ChildData,
