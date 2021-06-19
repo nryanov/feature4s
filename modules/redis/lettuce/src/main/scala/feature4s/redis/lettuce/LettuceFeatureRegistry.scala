@@ -3,11 +3,10 @@ package feature4s.redis.lettuce
 import feature4s.{Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.monad.syntax._
 import feature4s.monad.MonadError
+import feature4s.compat.CollectionConverters._
 import feature4s.redis._
 import io.lettuce.core.{KeyScanCursor, ScanArgs}
 import io.lettuce.core.api.StatefulRedisConnection
-
-import scala.jdk.CollectionConverters._
 
 abstract class LettuceFeatureRegistry[F[_]](
   connection: StatefulRedisConnection[String, String],
@@ -42,7 +41,7 @@ abstract class LettuceFeatureRegistry[F[_]](
           Map(
             FeatureNameFieldName -> name,
             DescriptionFieldName -> description
-          ).asJava
+          )
         )
       )
       .void
@@ -56,7 +55,7 @@ abstract class LettuceFeatureRegistry[F[_]](
             FeatureNameFieldName -> name,
             ValueFieldName -> enable.toString,
             DescriptionFieldName -> description.getOrElse("")
-          ).asJava
+          )
         )
       )
       .map(_ => Feature(name, () => valueAccessor(name), description))
@@ -76,19 +75,17 @@ abstract class LettuceFeatureRegistry[F[_]](
         monad.pure(keys),
         monad
           .eval(syncCommands.scan(cursor, filter))
-          .flatMap(cursor => scan(cursor, cursor.getKeys.asScala.toList ::: keys))
+          .flatMap(cursor => scan(cursor, cursor.getKeys ::: keys))
       )
 
-    monad
-      .eval(syncCommands.scan(filter))
-      .flatMap(cursor => scan(cursor, cursor.getKeys.asScala.toList))
-      .flatMap { keys =>
+    monad.eval(syncCommands.scan(filter)).flatMap(cursor => scan(cursor, cursor.getKeys)).flatMap {
+      keys =>
         monad.traverse(keys)(key =>
           monad
             .eval(
               syncCommands.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
             )
-            .map(fields => fields.asScala.map(f => f.getKey -> f.getValue).toMap)
+            .map(fields => fields.map(f => f.getKey -> f.getValue).toMap)
             .map(fields =>
               FeatureState(
                 fields.getOrElse(FeatureNameFieldName, "empty_feature_name"),
@@ -97,7 +94,7 @@ abstract class LettuceFeatureRegistry[F[_]](
               )
             )
         )
-      }
+    }
   }
 
   override def isExist(name: String): F[Boolean] =

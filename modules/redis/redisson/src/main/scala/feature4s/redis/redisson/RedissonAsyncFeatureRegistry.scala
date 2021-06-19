@@ -2,12 +2,11 @@ package feature4s.redis.redisson
 
 import feature4s.{ClientError, Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.monad.{MonadAsyncError, MonadError}
+import feature4s.compat.CollectionConverters._
 import feature4s.monad.syntax._
 import feature4s.redis.{DescriptionFieldName, FeatureNameFieldName, ValueFieldName, key, keyFilter}
 import org.redisson.api.{RKeys, RedissonClient}
 import org.redisson.client.codec.StringCodec
-
-import scala.jdk.CollectionConverters._
 
 abstract class RedissonAsyncFeatureRegistry[F[_]](
   client: RedissonClient,
@@ -59,7 +58,7 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
           Map(
             FeatureNameFieldName -> name,
             DescriptionFieldName -> description
-          ).asJava
+          )
         )
 
       cf.onComplete { (_, err) =>
@@ -80,7 +79,7 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
               ValueFieldName -> enable.toString,
               FeatureNameFieldName -> name,
               DescriptionFieldName -> description.getOrElse("")
-            ).asJava
+            )
           )
 
         cf.onComplete { (_, err) =>
@@ -112,18 +111,18 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
   override def featureList(): F[List[FeatureState]] =
     monad
       .eval(keyCommands.getKeysByPattern(keyFilter(namespace)))
-      .flatMap(iter => monad.eval(iter.asScala.toList))
+      .flatMap(iter => monad.eval(iter.toList))
       .flatMap { keys =>
         monad.traverse(keys)(key =>
           monad
             .cancelable[Map[String, String]] { cb =>
               val cf = client
                 .getMap[String, String](key, codec)
-                .getAllAsync(Set(FeatureNameFieldName, ValueFieldName, DescriptionFieldName).asJava)
+                .getAllAsync(Set(FeatureNameFieldName, ValueFieldName, DescriptionFieldName))
 
               cf.onComplete { (map, err) =>
                 if (err != null) cb(Left(ClientError(err)))
-                else cb(Right(map.asScala.toMap))
+                else cb(Right(map))
               }
 
               () => monad.eval(cf.cancel(true))

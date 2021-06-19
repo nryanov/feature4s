@@ -3,11 +3,10 @@ package feature4s.aerospike
 import com.aerospike.client.{AerospikeClient, AerospikeException, Bin, ResultCode}
 import com.aerospike.client.policy.{RecordExistsAction, WritePolicy}
 import com.aerospike.client.query.Statement
+import feature4s.compat.CollectionConverters._
 import feature4s.{Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.monad.MonadError
 import feature4s.monad.syntax._
-
-import scala.jdk.CollectionConverters._
 
 abstract class AerospikeFeatureRegistry[F[_]](
   client: AerospikeClient,
@@ -87,7 +86,7 @@ abstract class AerospikeFeatureRegistry[F[_]](
 
     monad
       .eval(client.query(client.queryPolicyDefault, statement))
-      .map(set => set.iterator().asScala)
+      .map(set => set.iterator())
       .map(records =>
         records
           .map(r =>

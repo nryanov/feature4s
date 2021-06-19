@@ -3,11 +3,10 @@ package feature4s.redis.lettuce
 import feature4s.redis._
 import feature4s.monad.syntax._
 import feature4s.monad.MonadAsyncError
+import feature4s.compat.CollectionConverters._
 import feature4s.{ClientError, Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import io.lettuce.core.{KeyScanCursor, KeyValue, ScanArgs}
 import io.lettuce.core.api.StatefulRedisConnection
-
-import scala.jdk.CollectionConverters._
 
 abstract class LettuceAsyncFeatureRegistry[F[_]](
   connection: StatefulRedisConnection[String, String],
@@ -45,7 +44,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
               FeatureNameFieldName -> name,
               ValueFieldName -> enable.toString,
               DescriptionFieldName -> description.getOrElse("")
-            ).asJava
+            )
           )
           .whenComplete { (_: java.lang.String, err: Throwable) =>
             if (err != null) cb(Left(ClientError(err)))
@@ -81,7 +80,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
             Map(
               FeatureNameFieldName -> name,
               DescriptionFieldName -> description
-            ).asJava
+            )
           )
           .whenComplete { (r: java.lang.Long, err: Throwable) =>
             if (err != null) cb(Left(ClientError(err)))
@@ -125,7 +124,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
 
             () => monad.eval(cf.toCompletableFuture.cancel(true))
           }
-          .flatMap(cursor => scan(cursor, cursor.getKeys.asScala.toList ::: keys))
+          .flatMap(cursor => scan(cursor, cursor.getKeys ::: keys))
       )
 
     monad
@@ -137,7 +136,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
         }
         () => monad.eval(cf.toCompletableFuture.cancel(true))
       }
-      .flatMap(cursor => scan(cursor, cursor.getKeys.asScala.toList))
+      .flatMap(cursor => scan(cursor, cursor.getKeys))
       .flatMap { keys =>
         monad.traverse(keys)(key =>
           monad
@@ -152,7 +151,7 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
 
               () => monad.eval(cf.toCompletableFuture.cancel(true))
             }
-            .map(fields => fields.asScala.map(f => f.getKey -> f.getValue).toMap)
+            .map(fields => fields.map(f => f.getKey -> f.getValue).toMap)
             .map(fields =>
               FeatureState(
                 fields.getOrElse(FeatureNameFieldName, "empty_feature_name"),

@@ -3,10 +3,9 @@ package feature4s.redis.jedis
 import feature4s.{Feature, FeatureNotFound, FeatureRegistry, FeatureState, MissingFields}
 import feature4s.monad.MonadError
 import feature4s.monad.syntax._
+import feature4s.compat.CollectionConverters._
 import feature4s.redis._
 import redis.clients.jedis.{Jedis, JedisPool, ScanParams, ScanResult}
-
-import scala.jdk.CollectionConverters._
 
 abstract class JedisFeatureRegistry[F[_]](
   pool: JedisPool,
@@ -38,7 +37,7 @@ abstract class JedisFeatureRegistry[F[_]](
               FeatureNameFieldName -> name,
               ValueFieldName -> enable.toString,
               DescriptionFieldName -> description.getOrElse("")
-            ).asJava
+            )
           )
         )
         .map(_ => Feature(name, () => valueAccessor(name), description))
@@ -60,7 +59,7 @@ abstract class JedisFeatureRegistry[F[_]](
           Map(
             FeatureNameFieldName -> name,
             DescriptionFieldName -> description
-          ).asJava
+          )
         )
       )
       .void
@@ -82,19 +81,19 @@ abstract class JedisFeatureRegistry[F[_]](
         monad.pure(keys),
         monad
           .eval(client.scan(cursor.getCursor, filter))
-          .flatMap(cursor => scan(cursor, cursor.getResult.asScala.toList ::: keys))
+          .flatMap(cursor => scan(cursor, cursor.getResult ::: keys))
       )
 
     monad
       .eval(client.scan(startCursor, filter))
-      .flatMap(cursor => scan(cursor, cursor.getResult.asScala.toList))
+      .flatMap(cursor => scan(cursor, cursor.getResult))
       .flatMap { keys =>
         monad.traverse(keys)(key =>
           monad
             .eval(
               client.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
             )
-            .map(fields => fields.asScala.toList)
+            .map(fields => fields.toList)
             .flatMap {
               case featureName :: value :: description :: Nil =>
                 monad.pure(

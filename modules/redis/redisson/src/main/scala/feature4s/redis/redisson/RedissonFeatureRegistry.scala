@@ -3,11 +3,10 @@ package feature4s.redis.redisson
 import feature4s.{Feature, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.monad.MonadError
 import feature4s.monad.syntax._
+import feature4s.compat.CollectionConverters._
 import feature4s.redis._
 import org.redisson.api.{RKeys, RedissonClient}
 import org.redisson.client.codec.StringCodec
-
-import scala.jdk.CollectionConverters._
 
 abstract class RedissonFeatureRegistry[F[_]](
   client: RedissonClient,
@@ -46,7 +45,7 @@ abstract class RedissonFeatureRegistry[F[_]](
             Map(
               FeatureNameFieldName -> name,
               DescriptionFieldName -> description
-            ).asJava
+            )
           )
       )
       .void
@@ -61,7 +60,7 @@ abstract class RedissonFeatureRegistry[F[_]](
               ValueFieldName -> enable.toString,
               FeatureNameFieldName -> name,
               DescriptionFieldName -> description.getOrElse("")
-            ).asJava
+            )
           )
       )
       .map(_ => Feature(name, () => valueAccessor(name), description))
@@ -81,15 +80,14 @@ abstract class RedissonFeatureRegistry[F[_]](
   override def featureList(): F[List[FeatureState]] =
     monad
       .eval(keyCommands.getKeysByPattern(keyFilter(namespace)))
-      .flatMap(iter => monad.eval(iter.asScala.toList))
+      .flatMap(iter => monad.eval(iter.toList))
       .flatMap { keys =>
         monad.traverse(keys)(key =>
           monad
-            .eval(
+            .eval[Map[String, String]](
               client
                 .getMap[String, String](key, codec)
-                .getAll(Set(FeatureNameFieldName, ValueFieldName, DescriptionFieldName).asJava)
-                .asScala
+                .getAll(Set(FeatureNameFieldName, ValueFieldName, DescriptionFieldName))
             )
             .map(fields =>
               FeatureState(
