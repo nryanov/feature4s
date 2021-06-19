@@ -7,6 +7,7 @@ import feature4s.{FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.tapir.FeatureRegistryError
 import io.circe.Decoder
 import org.http4s.{Method, Request, Response, Status, Uri}
+import org.http4s.implicits._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Assertion, EitherValues}
 import org.scalatest.funsuite.AnyFunSuite
@@ -56,7 +57,7 @@ class Http4sFeatureRegistryRoutesSpec
     val routes = Http4sFeatureRegistryRoutes[IO](featureRegistry)
     val request = Request[IO](method = Method.GET, uri = Uri(path = s"/features"))
 
-    val result: IO[Response[IO]] = routes.route.run(request)
+    val result: IO[Response[IO]] = routes.route.orNotFound.run(request)
 
     check[List[FeatureState]](result, Status.Ok, List(FeatureState("test", isEnable = true, None)))
   }
@@ -67,10 +68,9 @@ class Http4sFeatureRegistryRoutesSpec
     (featureRegistry.update _).expects("test", false).returning(IO.unit)
 
     val routes = Http4sFeatureRegistryRoutes[IO](featureRegistry)
-    val request = Request[IO](method = Method.PUT, uri = Uri(path = s"/features/test"))
-      .withEntity[String]("false")
+    val request = Request[IO](method = Method.PUT, uri = Uri(path = s"/features/test/disable"))
 
-    val result: IO[Response[IO]] = routes.route.run(request)
+    val result: IO[Response[IO]] = routes.route.orNotFound.run(request)
 
     check(result, Status.Ok)
   }
@@ -83,10 +83,9 @@ class Http4sFeatureRegistryRoutesSpec
       .returning(IO.raiseError(FeatureNotFound("test")))
 
     val routes = Http4sFeatureRegistryRoutes[IO](featureRegistry)
-    val request = Request[IO](method = Method.PUT, uri = Uri(path = s"/features/test"))
-      .withEntity[String]("false")
+    val request = Request[IO](method = Method.PUT, uri = Uri(path = s"/features/test/disable"))
 
-    val result: IO[Response[IO]] = routes.route.run(request)
+    val result: IO[Response[IO]] = routes.route.orNotFound.run(request)
 
     check[FeatureRegistryError](
       result,

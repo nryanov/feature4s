@@ -119,7 +119,8 @@ lazy val feature4s =
       tapir,
       tapirAkka,
       tapirHttp4s,
-      tapirZioHttp4s
+      tapirZioHttp4s,
+      examples
     )
 
 lazy val core = project
@@ -338,3 +339,23 @@ lazy val tapirZioHttp4s = project
     )
   )
   .dependsOn(tapir % compileAndTest)
+
+lazy val examples = project
+  .in(file("examples"))
+  .settings(allSettings)
+  .settings(noPublish)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
+      "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % tapirVersion,
+      "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % tapirVersion,
+      "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % tapirVersion,
+      "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion,
+      "ch.qos.logback" % "logback-classic" % logbackVersion
+    )
+  )
+  .dependsOn(tapirHttp4s % compileAndTest)
+  .dependsOn(tapirAkka % compileAndTest)
+  .dependsOn(tapirZioHttp4s % compileAndTest)
+  .dependsOn(lettuceCats % compileAndTest)
+  .dependsOn(lettuceZio % compileAndTest)

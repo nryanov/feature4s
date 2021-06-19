@@ -72,8 +72,7 @@ class ZioFeatureRegistryRoutesSpec
     (featureRegistry.update _).expects("test", false).returning(Task.unit)
 
     val routes = ZioFeatureRegistryRoutes(featureRegistry)
-    val request = Request[ResultT](method = Method.PUT, uri = Uri(path = s"/features/test"))
-      .withEntity[String]("false")
+    val request = Request[ResultT](method = Method.PUT, uri = Uri(path = s"/features/test/disable"))
 
     val result = routes.route.run(request).value
 
@@ -86,8 +85,7 @@ class ZioFeatureRegistryRoutesSpec
     (featureRegistry.update _).expects("test", false).returning(Task.fail(FeatureNotFound("test")))
 
     val routes = ZioFeatureRegistryRoutes(featureRegistry)
-    val request = Request[ResultT](method = Method.PUT, uri = Uri(path = s"/features/test"))
-      .withEntity[String]("false")
+    val request = Request[ResultT](method = Method.PUT, uri = Uri(path = s"/features/test/disable"))
 
     val result = routes.route.run(request).value
 

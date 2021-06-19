@@ -7,11 +7,11 @@ import cats.syntax.semigroupk._
 import sttp.model.StatusCode
 import cats.effect.{ConcurrentEffect, ContextShift, Timer}
 import feature4s.{ClientError, FeatureNotFound, FeatureRegistry, FeatureState}
-import feature4s.tapir.{FeatureRegistryError, UpdateFeatureRequest}
+import feature4s.tapir.FeatureRegistryError
 import org.http4s.HttpRoutes
 import org.http4s.implicits._
 import sttp.tapir._
-import sttp.tapir.Codec.{JsonCodec, boolean}
+import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
 final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
@@ -30,23 +30,35 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
     : Endpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState], Any] =
     baseEndpoint.get.out(anyJsonBody[List[FeatureState]]).description("Get registered feature list")
 
-  private val updateFeatureEndpoint
-    : Endpoint[UpdateFeatureRequest, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+  private val enableFeatureEndpoint
+    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.put
       .in(path[String]("featureName"))
-      .in(plainBody[Boolean].example(true))
-      .mapInTo(UpdateFeatureRequest)
+      .in("enable")
       .out(statusCode.example(StatusCode.Ok))
-      .description("Update feature value")
+      .description("Enable feature")
+
+  private val disableFeatureEndpoint
+    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+    baseEndpoint.put
+      .in(path[String]("featureName"))
+      .in("disable")
+      .out(statusCode.example(StatusCode.Ok))
+      .description("Disable feature")
 
   private val featureListRoute: HttpRoutes[F] =
     Http4sServerInterpreter.toRoutes(featureListEndpoint)(_ =>
       toRoute(featureRegistry.featureList())
     )
 
-  private val updateFeatureRoute: HttpRoutes[F] =
-    Http4sServerInterpreter.toRoutes(updateFeatureEndpoint)(request =>
-      toRoute(featureRegistry.update(request.featureName, request.enable).map(_ => StatusCode.Ok))
+  private val enableFeatureRoute: HttpRoutes[F] =
+    Http4sServerInterpreter.toRoutes(enableFeatureEndpoint)(featureName =>
+      toRoute(featureRegistry.update(featureName, enable = true).map(_ => StatusCode.Ok))
+    )
+
+  private val disableFeatureRoute: HttpRoutes[F] =
+    Http4sServerInterpreter.toRoutes(disableFeatureEndpoint)(featureName =>
+      toRoute(featureRegistry.update(featureName, enable = false).map(_ => StatusCode.Ok))
     )
 
   private def toRoute[A](fa: F[A]): F[Either[(StatusCode, FeatureRegistryError), A]] =
@@ -74,10 +86,11 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
 
   val endpoints = List(
     featureListEndpoint,
-    updateFeatureEndpoint
+    enableFeatureEndpoint,
+    disableFeatureEndpoint
   )
 
-  val route = featureListRoute.combineK(updateFeatureRoute).orNotFound
+  val route = featureListRoute.combineK(enableFeatureRoute).combineK(disableFeatureRoute)
 }
 
 object Http4sFeatureRegistryRoutes {
