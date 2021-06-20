@@ -47,7 +47,7 @@ class AkkaFeatureRegistryRoutesSpec
 
     val routes = AkkaFeatureRegistryRoutes(featureRegistry)
 
-    Put("/features/test").withEntity("false") ~> routes.route ~> check {
+    Put("/features/test/disable") ~> routes.route ~> check {
       status shouldBe StatusCodes.OK
     }
   }
@@ -61,7 +61,7 @@ class AkkaFeatureRegistryRoutesSpec
 
     val routes = AkkaFeatureRegistryRoutes(featureRegistry)
 
-    Put("/features/test").withEntity("false") ~> routes.route ~> check {
+    Put("/features/test/disable") ~> routes.route ~> check {
       status shouldBe StatusCodes.NOT_FOUND
       decode[FeatureRegistryError](responseAs[String]).value shouldBe FeatureRegistryError(
         StatusCodes.NOT_FOUND.intValue(),

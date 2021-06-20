@@ -2,7 +2,7 @@ package feature4s.tapir.akka
 
 import akka.http.scaladsl.server.Route
 import feature4s._
-import feature4s.tapir.{FeatureRegistryError, UpdateFeatureRequest}
+import feature4s.tapir.FeatureRegistryError
 import sttp.model.StatusCode
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
@@ -25,23 +25,35 @@ final class AkkaFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Future])(
     : Endpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState], Any] =
     baseEndpoint.get.out(anyJsonBody[List[FeatureState]]).description("Get registered feature list")
 
-  private[tapir] val updateFeatureEndpoint
-    : Endpoint[UpdateFeatureRequest, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+  private[tapir] val enableFeatureEndpoint
+    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.put
       .in(path[String]("featureName"))
-      .in(plainBody[Boolean].example(true))
-      .mapInTo(UpdateFeatureRequest)
+      .in("enable")
       .out(statusCode.example(StatusCode.Ok))
-      .description("Update feature value")
+      .description("Enable feature")
+
+  private[tapir] val disableFeatureEndpoint
+    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+    baseEndpoint.put
+      .in(path[String]("featureName"))
+      .in("disable")
+      .out(statusCode.example(StatusCode.Ok))
+      .description("Disable feature")
 
   private val featureListRoute =
     AkkaHttpServerInterpreter.toRoute(featureListEndpoint)(_ =>
       toRoute(featureRegistry.featureList())
     )
 
-  private val updateFeatureRoute =
-    AkkaHttpServerInterpreter.toRoute(updateFeatureEndpoint)(request =>
-      toRoute(featureRegistry.update(request.featureName, request.enable).map(_ => StatusCode.Ok))
+  private val enableFeatureRoute =
+    AkkaHttpServerInterpreter.toRoute(enableFeatureEndpoint)(featureName =>
+      toRoute(featureRegistry.update(featureName, enable = true).map(_ => StatusCode.Ok))
+    )
+
+  private val disableFeatureRoute =
+    AkkaHttpServerInterpreter.toRoute(disableFeatureEndpoint)(featureName =>
+      toRoute(featureRegistry.update(featureName, enable = false).map(_ => StatusCode.Ok))
     )
 
   private def toRoute[A](fa: Future[A]): Future[Either[(StatusCode, FeatureRegistryError), A]] =
@@ -73,10 +85,11 @@ final class AkkaFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Future])(
 
   val endpoints = List(
     featureListEndpoint,
-    updateFeatureEndpoint
+    enableFeatureEndpoint,
+    disableFeatureEndpoint
   )
 
-  val route: Route = featureListRoute ~ updateFeatureRoute
+  val route: Route = featureListRoute ~ enableFeatureRoute ~ disableFeatureRoute
 }
 
 object AkkaFeatureRegistryRoutes {

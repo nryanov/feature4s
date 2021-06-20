@@ -1,7 +1,7 @@
 package feature4s.tapir.zio
 
 import feature4s.{ClientError, FeatureNotFound, FeatureRegistry, FeatureState}
-import feature4s.tapir.{FeatureRegistryError, UpdateFeatureRequest}
+import feature4s.tapir.FeatureRegistryError
 import org.http4s.HttpRoutes
 import sttp.model.StatusCode
 import sttp.tapir.Codec.JsonCodec
@@ -23,20 +23,31 @@ final class ZioFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Task])(imp
     : ZEndpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState]] =
     baseEndpoint.get.out(anyJsonBody[List[FeatureState]]).description("Get registered feature list")
 
-  private val updateFeatureEndpoint
-    : ZEndpoint[UpdateFeatureRequest, (StatusCode, FeatureRegistryError), StatusCode] =
+  private val enableFeatureEndpoint
+    : ZEndpoint[String, (StatusCode, FeatureRegistryError), StatusCode] =
     baseEndpoint.put
       .in(path[String]("featureName"))
-      .in(plainBody[Boolean].example(true))
-      .mapInTo(UpdateFeatureRequest)
+      .in("enable")
       .out(statusCode.example(StatusCode.Ok))
-      .description("Update feature value")
+      .description("Enable feature")
+
+  private val disableFeatureEndpoint
+    : ZEndpoint[String, (StatusCode, FeatureRegistryError), StatusCode] =
+    baseEndpoint.put
+      .in(path[String]("featureName"))
+      .in("disable")
+      .out(statusCode.example(StatusCode.Ok))
+      .description("Disable feature")
 
   private val featureListRoute =
     featureListEndpoint.serverLogic[Task](_ => toRoute(featureRegistry.featureList()))
 
-  private val updateFeatureRoute = updateFeatureEndpoint.serverLogic[Task](request =>
-    toRoute(featureRegistry.update(request.featureName, request.enable).as(StatusCode.Ok))
+  private val enableFeatureRoute = enableFeatureEndpoint.serverLogic[Task](featureName =>
+    toRoute(featureRegistry.update(featureName, enable = true).as(StatusCode.Ok))
+  )
+
+  private val disableFeatureRoute = disableFeatureEndpoint.serverLogic[Task](featureName =>
+    toRoute(featureRegistry.update(featureName, enable = false).as(StatusCode.Ok))
   )
 
   private def toRoute[A](fa: Task[A]): Task[Either[(StatusCode, FeatureRegistryError), A]] =
@@ -58,11 +69,14 @@ final class ZioFeatureRegistryRoutes(featureRegistry: FeatureRegistry[Task])(imp
 
   val endpoints = List(
     featureListEndpoint,
-    updateFeatureEndpoint
+    enableFeatureEndpoint,
+    disableFeatureEndpoint
   )
 
   val route: HttpRoutes[ZIO[Any with Has[Clock.Service], Throwable, *]] =
-    ZHttp4sServerInterpreter.from(List(featureListRoute, updateFeatureRoute)).toRoutes
+    ZHttp4sServerInterpreter
+      .from(List(featureListRoute, enableFeatureRoute, disableFeatureRoute))
+      .toRoutes
 }
 
 object ZioFeatureRegistryRoutes {
