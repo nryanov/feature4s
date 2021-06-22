@@ -1,13 +1,18 @@
 package feature4s.examples
 
+// akka
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
+// feature4s
 import feature4s.redis.lettuce.LettuceFutureFeatureRegistry
 import feature4s.tapir.akka.AkkaFeatureRegistryRoutes
+import feature4s.tapir.json.circe.codecs._
+// lettuce
 import io.lettuce.core.RedisClient
+// tapir
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.openapi.OpenAPI
 import sttp.tapir.openapi.circe.yaml._
@@ -15,10 +20,6 @@ import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
-// codecs will be derived automatically
-import sttp.tapir.json.circe._
-import sttp.tapir.generic.auto._
-import io.circe.generic.auto._
 
 import scala.io.StdIn
 import scala.concurrent.duration._

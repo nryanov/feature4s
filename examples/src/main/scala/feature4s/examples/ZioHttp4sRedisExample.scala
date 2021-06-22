@@ -1,10 +1,10 @@
 package feature4s.examples
 
 // feature4s
+import feature4s.tapir.json.circe.codecs._
 import feature4s.{Feature, FeatureRegistry}
 import feature4s.tapir.zio.ZioFeatureRegistryRoutes
 import feature4s.redis.lettuce.zio.LettuceZioFeatureRegistry
-import sttp.tapir.swagger.http4s.SwaggerHttp4s
 // lettuce
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
@@ -20,15 +20,12 @@ import zio._
 import zio.clock.Clock
 import zio.interop.catz._
 import zio.blocking.Blocking
+// sttp
 import sttp.tapir.ztapir._
-import sttp.tapir.server.http4s.ztapir.ZHttp4sServerInterpreter
-// swagger
-import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.openapi.circe.yaml._
-// codecs
-import sttp.tapir.json.circe._
-import sttp.tapir.generic.auto._
-import io.circe.generic.auto._
+import sttp.tapir.swagger.http4s.SwaggerHttp4s
+import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
+import sttp.tapir.server.http4s.ztapir.ZHttp4sServerInterpreter
 
 object ZioHttp4sRedisExample extends zio.App {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =

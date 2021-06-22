@@ -9,7 +9,7 @@ lazy val lettuceVersion = "6.1.2.RELEASE"
 lazy val redissonVersion = "3.15.5"
 lazy val aerospikeClientVersion = "5.1.2"
 // openapi
-lazy val tapirVersion = "0.17.5"
+lazy val tapirVersion = "0.17.19"
 lazy val akkaVersion = "2.6.11"
 lazy val akkaHttpVersion = "10.2.2"
 // logging
@@ -120,6 +120,10 @@ lazy val feature4s =
       tapirAkka,
       tapirHttp4s,
       tapirZioHttp4s,
+      tapirCirce,
+      tapirSprayJson,
+      tapirJson4s,
+      tapirTethys,
       examples
     )
 
@@ -297,7 +301,7 @@ lazy val tapir = project
   .in(file("modules/tapir"))
   .settings(allSettings)
   .settings(
-    name := "tapir",
+    name := "feature4s-tapir",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-server-tests" % tapirVersion % Test
@@ -309,7 +313,7 @@ lazy val tapirHttp4s = project
   .in(file("modules/tapir/http4s"))
   .settings(allSettings)
   .settings(
-    name := "tapir-http4s",
+    name := "feature4s-tapir-http4s",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
     )
@@ -320,7 +324,7 @@ lazy val tapirAkka = project
   .in(file("modules/tapir/akka"))
   .settings(allSettings)
   .settings(
-    name := "tapir-akka",
+    name := "feature4s-tapir-akka",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % tapirVersion,
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
@@ -333,9 +337,53 @@ lazy val tapirZioHttp4s = project
   .in(file("modules/tapir/zio-http4s"))
   .settings(allSettings)
   .settings(
-    name := "tapir-zio-http4s",
+    name := "feature4s-tapir-zio-http4s",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-zio-http4s-server" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % compileAndTest)
+
+lazy val tapirCirce = project
+  .in(file("modules/tapir/json/circe"))
+  .settings(allSettings)
+  .settings(
+    name := "feature4s-tapir-json-circe",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % compileAndTest)
+
+lazy val tapirSprayJson = project
+  .in(file("modules/tapir/json/sprayjson"))
+  .settings(allSettings)
+  .settings(
+    name := "feature4s-tapir-json-sprayjson",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-spray" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % compileAndTest)
+
+lazy val tapirJson4s = project
+  .in(file("modules/tapir/json/json4s"))
+  .settings(allSettings)
+  .settings(
+    name := "feature4s-tapir-json-json4s",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-json4s" % tapirVersion
+    )
+  )
+  .dependsOn(tapir % compileAndTest)
+
+lazy val tapirTethys = project
+  .in(file("modules/tapir/json/tethys"))
+  .settings(allSettings)
+  .settings(
+    name := "feature4s-tapir-json-tethys",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-tethys" % tapirVersion
     )
   )
   .dependsOn(tapir % compileAndTest)
@@ -346,7 +394,6 @@ lazy val examples = project
   .settings(noPublish)
   .settings(
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % tapirVersion,
@@ -357,5 +404,6 @@ lazy val examples = project
   .dependsOn(tapirHttp4s % compileAndTest)
   .dependsOn(tapirAkka % compileAndTest)
   .dependsOn(tapirZioHttp4s % compileAndTest)
+  .dependsOn(tapirCirce % compileAndTest)
   .dependsOn(lettuceCats % compileAndTest)
   .dependsOn(lettuceZio % compileAndTest)

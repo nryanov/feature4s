@@ -1,23 +1,26 @@
 package feature4s.examples
 
+// cats
 import cats.syntax.flatMap._
 import cats.effect._
 import cats.syntax.semigroupk._
 import cats.syntax.either._
+// feature4s
 import feature4s.{Feature, FeatureRegistry}
+import feature4s.tapir.json.circe.codecs._
 import feature4s.redis.lettuce.cats.LettuceCatsFeatureRegistry
 import feature4s.tapir.http4s.Http4sFeatureRegistryRoutes
+// lettuce
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
-import io.circe.generic.auto._
+// http4s
 import org.http4s.HttpRoutes
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.syntax.kleisli._
+// tapir
 import sttp.tapir._
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
-import sttp.tapir.json.circe._
-import sttp.tapir.generic.auto._
 import sttp.tapir.openapi.circe.yaml._
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
