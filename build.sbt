@@ -10,8 +10,8 @@ lazy val redissonVersion = "3.15.5"
 lazy val aerospikeClientVersion = "5.1.2"
 // openapi
 lazy val tapirVersion = "0.17.19"
-lazy val akkaVersion = "2.6.11"
-lazy val akkaHttpVersion = "10.2.2"
+lazy val akkaVersion = "2.6.13"
+lazy val akkaHttpVersion = "10.2.4"
 // logging
 lazy val slf4jApiVersion = "1.7.30"
 // test

@@ -6,6 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
+import feature4s.tapir.Configuration
 // feature4s
 import feature4s.redis.lettuce.LettuceFutureFeatureRegistry
 import feature4s.tapir.akka.AkkaFeatureRegistryRoutes
@@ -36,7 +37,8 @@ object AkkaRedisExample {
     val redisClient = RedisClient.create("redis://localhost:6379")
     val redisConnection = redisClient.connect()
     val featureRegistry = LettuceFutureFeatureRegistry.useConnection(redisConnection, "features")
-    val featureRegistryRoutes = AkkaFeatureRegistryRoutes(featureRegistry)
+    val featureRegistryRoutes =
+      AkkaFeatureRegistryRoutes(featureRegistry, Configuration(allowRemove = true))
 
     val feature = Await.result(
       featureRegistry.register("feature_1", enable = false, Some("Example feature")),
