@@ -16,11 +16,15 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
   private val keyCommands: RKeys = client.getKeys
   private val codec: StringCodec = StringCodec.INSTANCE
 
-  override def register(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def register(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .cancelable[Unit] { cb =>
         val cf = client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putIfAbsentAsync(ValueFieldName, enable.toString)
 
         cf.onComplete { (_, err) =>
@@ -30,13 +34,14 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
 
         () => monad.eval(cf.cancel(true))
       }
-      .flatMap(_ => updateInfo(name, description.getOrElse("")))
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .flatMap(_ => updateInfo(featureName, description.getOrElse("")))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  private def valueAccessor(name: String): F[Boolean] =
+  private def valueAccessor(featureName: String): F[Boolean] =
     monad
       .cancelable[String] { cb =>
-        val cf = client.getMap[String, String](key(name, namespace), codec).getAsync(ValueFieldName)
+        val cf =
+          client.getMap[String, String](key(featureName, namespace), codec).getAsync(ValueFieldName)
 
         cf.onComplete { (r, err) =>
           if (err != null) cb(Left(ClientError(err)))
@@ -46,17 +51,17 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
         () => monad.eval(cf.cancel(true))
       }
       .flatMap { value =>
-        if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(name))
+        if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(featureName))
         else monad.eval(value.toBoolean)
       }
 
-  private def updateInfo(name: String, description: String): F[Unit] =
+  private def updateInfo(featureName: String, description: String): F[Unit] =
     monad.cancelable[Unit] { cb =>
       val cf = client
-        .getMap[String, String](key(name, namespace), codec)
+        .getMap[String, String](key(featureName, namespace), codec)
         .putAllAsync(
           Map(
-            FeatureNameFieldName -> name,
+            FeatureNameFieldName -> featureName,
             DescriptionFieldName -> description
           )
         )
@@ -69,15 +74,19 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
       () => monad.eval(cf.cancel(true))
     }
 
-  override def recreate(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def recreate(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .cancelable[Unit] { cb =>
         val cf = client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putAllAsync(
             Map(
               ValueFieldName -> enable.toString,
-              FeatureNameFieldName -> name,
+              FeatureNameFieldName -> featureName,
               DescriptionFieldName -> description.getOrElse("")
             )
           )
@@ -89,13 +98,13 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
 
         () => monad.eval(cf.cancel(true))
       }
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  override def update(name: String, enable: Boolean): F[Unit] =
-    monad.ifM(isExist(name))(
+  override def update(featureName: String, enable: Boolean): F[Unit] =
+    monad.ifM(isExist(featureName))(
       ifTrue = monad.cancelable[Unit] { cb =>
         val cf = client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putAsync(ValueFieldName, enable.toString)
 
         cf.onComplete { (r, err) =>
@@ -105,7 +114,7 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
 
         () => monad.eval(cf.cancel(true))
       },
-      ifFalse = monad.raiseError(FeatureNotFound(name))
+      ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
   override def featureList(): F[List[FeatureState]] =
@@ -137,9 +146,9 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
         )
       }
 
-  override def isExist(name: String): F[Boolean] =
+  override def isExist(featureName: String): F[Boolean] =
     monad.cancelable { cb =>
-      val cf = client.getMap(key(name, namespace)).isExistsAsync
+      val cf = client.getMap(key(featureName, namespace)).isExistsAsync
 
       cf.onComplete { (r, err) =>
         if (err != null) cb(Left(ClientError(err)))
@@ -149,9 +158,9 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
       () => monad.eval(cf.cancel(true))
     }
 
-  override def remove(name: String): F[Boolean] =
+  override def remove(featureName: String): F[Boolean] =
     monad.cancelable { cb =>
-      val cf = keyCommands.deleteAsync(key(name, namespace))
+      val cf = keyCommands.deleteAsync(key(featureName, namespace))
 
       cf.onComplete { (r, err) =>
         if (err != null) cb(Left(ClientError(err)))

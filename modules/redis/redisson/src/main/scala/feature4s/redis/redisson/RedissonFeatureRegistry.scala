@@ -16,65 +16,73 @@ abstract class RedissonFeatureRegistry[F[_]](
   private val keyCommands: RKeys = client.getKeys
   private val codec: StringCodec = StringCodec.INSTANCE
 
-  override def register(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def register(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .eval(
         client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putIfAbsent(ValueFieldName, enable.toString)
       )
-      .flatMap(_ => updateInfo(name, description.getOrElse("")))
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .flatMap(_ => updateInfo(featureName, description.getOrElse("")))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  private def valueAccessor(name: String): F[Boolean] =
+  private def valueAccessor(featureName: String): F[Boolean] =
     monad
       .eval(
-        client.getMap[String, String](key(name, namespace), codec).get(ValueFieldName)
+        client.getMap[String, String](key(featureName, namespace), codec).get(ValueFieldName)
       )
       .flatMap { value =>
-        if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(name))
+        if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(featureName))
         else monad.eval(value.toBoolean)
       }
 
-  private def updateInfo(name: String, description: String): F[Unit] =
+  private def updateInfo(featureName: String, description: String): F[Unit] =
     monad
       .eval(
         client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putAll(
             Map(
-              FeatureNameFieldName -> name,
+              FeatureNameFieldName -> featureName,
               DescriptionFieldName -> description
             )
           )
       )
       .void
 
-  override def recreate(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def recreate(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .eval(
         client
-          .getMap[String, String](key(name, namespace), codec)
+          .getMap[String, String](key(featureName, namespace), codec)
           .putAll(
             Map(
               ValueFieldName -> enable.toString,
-              FeatureNameFieldName -> name,
+              FeatureNameFieldName -> featureName,
               DescriptionFieldName -> description.getOrElse("")
             )
           )
       )
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  override def update(name: String, enable: Boolean): F[Unit] =
-    monad.ifM(isExist(name))(
+  override def update(featureName: String, enable: Boolean): F[Unit] =
+    monad.ifM(isExist(featureName))(
       ifTrue = monad
         .eval(
           client
-            .getMap[String, String](key(name, namespace), codec)
+            .getMap[String, String](key(featureName, namespace), codec)
             .put(ValueFieldName, enable.toString)
         )
         .void,
-      ifFalse = monad.raiseError(FeatureNotFound(name))
+      ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
   override def featureList(): F[List[FeatureState]] =
@@ -99,11 +107,11 @@ abstract class RedissonFeatureRegistry[F[_]](
         )
       }
 
-  override def isExist(name: String): F[Boolean] =
-    monad.eval(client.getMap(key(name, namespace)).isExists)
+  override def isExist(featureName: String): F[Boolean] =
+    monad.eval(client.getMap(key(featureName, namespace)).isExists)
 
-  override def remove(name: String): F[Boolean] =
-    monad.eval(keyCommands.delete(key(name, namespace))).map(_ > 0)
+  override def remove(featureName: String): F[Boolean] =
+    monad.eval(keyCommands.delete(key(featureName, namespace))).map(_ > 0)
 
   override def close(): F[Unit] = monad.unit
 

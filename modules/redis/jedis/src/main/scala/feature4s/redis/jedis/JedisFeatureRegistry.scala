@@ -5,59 +5,67 @@ import feature4s.monad.MonadError
 import feature4s.monad.syntax._
 import feature4s.compat.CollectionConverters._
 import feature4s.redis._
-import redis.clients.jedis.{Jedis, JedisPool, ScanParams, ScanResult}
+import redis.clients.jedis.util.Pool
+import redis.clients.jedis.{Jedis, ScanParams, ScanResult}
 
 abstract class JedisFeatureRegistry[F[_]](
-  pool: JedisPool,
+  pool: Pool[Jedis],
   namespace: String,
   implicit val monad: MonadError[F]
 ) extends FeatureRegistry[F] {
 
-  override def register(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def register(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     useClient { client =>
       monad
         .eval(
           client.hsetnx(
-            key(name, namespace),
+            key(featureName, namespace),
             ValueFieldName,
             enable.toString
           )
         )
-        .flatMap(_ => updateInfo(name, description.getOrElse("")))
-        .map(_ => Feature(name, () => valueAccessor(name), description))
+        .flatMap(_ => updateInfo(featureName, description.getOrElse("")))
+        .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
     }
 
-  override def recreate(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def recreate(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     useClient { client =>
       monad
         .eval(
           client.hmset(
-            key(name, namespace),
+            key(featureName, namespace),
             Map(
-              FeatureNameFieldName -> name,
+              FeatureNameFieldName -> featureName,
               ValueFieldName -> enable.toString,
               DescriptionFieldName -> description.getOrElse("")
             )
           )
         )
-        .map(_ => Feature(name, () => valueAccessor(name), description))
-
+        .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
     }
 
-  private def valueAccessor(name: String): F[Boolean] = useClient { client =>
-    monad.eval(client.hget(key(name, namespace), ValueFieldName)).flatMap { value =>
-      if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(name))
+  private def valueAccessor(featureName: String): F[Boolean] = useClient { client =>
+    monad.eval(client.hget(key(featureName, namespace), ValueFieldName)).flatMap { value =>
+      if (value == null || value.isEmpty) monad.raiseError(FeatureNotFound(featureName))
       else monad.eval(value.toBoolean)
     }
   }
 
-  private def updateInfo(name: String, description: String): F[Unit] = useClient { client =>
+  private def updateInfo(featureName: String, description: String): F[Unit] = useClient { client =>
     monad
       .eval(
         client.hset(
-          key(name, namespace),
+          key(featureName, namespace),
           Map(
-            FeatureNameFieldName -> name,
+            FeatureNameFieldName -> featureName,
             DescriptionFieldName -> description
           )
         )
@@ -65,10 +73,11 @@ abstract class JedisFeatureRegistry[F[_]](
       .void
   }
 
-  override def update(name: String, enable: Boolean): F[Unit] = useClient { client =>
-    monad.ifM(monad.eval(client.exists(key(name, namespace))))(
-      ifTrue = monad.eval(client.hset(key(name, namespace), ValueFieldName, enable.toString)),
-      ifFalse = monad.raiseError(FeatureNotFound(name))
+  override def update(featureName: String, enable: Boolean): F[Unit] = useClient { client =>
+    monad.ifM(monad.eval(client.exists(key(featureName, namespace))))(
+      ifTrue =
+        monad.eval(client.hset(key(featureName, namespace), ValueFieldName, enable.toString)),
+      ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
   }
 
@@ -109,12 +118,12 @@ abstract class JedisFeatureRegistry[F[_]](
       }
   }
 
-  override def isExist(name: String): F[Boolean] = useClient { client =>
-    monad.eval(client.exists(key(name, namespace)))
+  override def isExist(featureName: String): F[Boolean] = useClient { client =>
+    monad.eval(client.exists(key(featureName, namespace)))
   }
 
-  override def remove(name: String): F[Boolean] = useClient { client =>
-    monad.eval(client.unlink(key(name, namespace))).map(_ > 0)
+  override def remove(featureName: String): F[Boolean] = useClient { client =>
+    monad.eval(client.unlink(key(featureName, namespace))).map(_ > 0)
   }
 
   override def close(): F[Unit] = monad.unit

@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  redis:
+    image: 'bitnami/redis:6.2.4'
+    hostname: 'redis'
+    ports:
+      - 6379:6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+  sentinel:
+    image: 'bitnami/redis-sentinel:6.2.4'
+    hostname: 'sentinel'
+    ports:
+      - 26379:26379
+    depends_on:
+      - redis
+    environment:
+      - REDIS_MASTER_HOST=127.0.0.1
+      - REDIS_SENTINEL_QUORUM=2
+      - REDIS_MASTER_SET=redis

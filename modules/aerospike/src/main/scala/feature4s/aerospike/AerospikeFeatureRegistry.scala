@@ -19,13 +19,17 @@ abstract class AerospikeFeatureRegistry[F[_]](
   private val notOverride = new WritePolicy(client.writePolicyDefault)
   notOverride.recordExistsAction = RecordExistsAction.CREATE_ONLY
 
-  override def register(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def register(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .handleErrorWith(
         monad.eval(
           client.put(
             notOverride,
-            key(name, namespace),
+            key(featureName, namespace),
             new Bin(ValueFieldName, enable)
           )
         )
@@ -33,49 +37,54 @@ abstract class AerospikeFeatureRegistry[F[_]](
         case err: AerospikeException if err.getResultCode == ResultCode.KEY_EXISTS_ERROR =>
           monad.unit
       }
-      .flatMap(_ => updateInfo(name, description.getOrElse("")))
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .flatMap(_ => updateInfo(featureName, description.getOrElse("")))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  private def valueAccessor(name: String): F[Boolean] =
+  private def valueAccessor(featureName: String): F[Boolean] =
     monad
-      .eval(client.get(client.readPolicyDefault, key(name, namespace)))
+      .eval(client.get(client.readPolicyDefault, key(featureName, namespace)))
       .flatMap(record =>
         monad.ifM(monad.pure(record != null))(
           ifTrue = monad.pure(record.getBoolean(ValueFieldName)),
-          ifFalse = monad.raiseError(FeatureNotFound(name))
+          ifFalse = monad.raiseError(FeatureNotFound(featureName))
         )
       )
 
-  private def updateInfo(name: String, description: String): F[Unit] =
+  private def updateInfo(featureName: String, description: String): F[Unit] =
     monad
       .eval(
         client.put(
           writePolicy,
-          key(name, namespace),
-          new Bin(FeatureNameFieldName, name),
+          key(featureName, namespace),
+          new Bin(FeatureNameFieldName, featureName),
           new Bin(DescriptionFieldName, description)
         )
       )
       .void
 
-  override def recreate(name: String, enable: Boolean, description: Option[String]): F[Feature[F]] =
+  override def recreate(
+    featureName: String,
+    enable: Boolean,
+    description: Option[String]
+  ): F[Feature[F]] =
     monad
       .eval(
         client.put(
           writePolicy,
-          key(name, namespace),
-          new Bin(FeatureNameFieldName, name),
+          key(featureName, namespace),
+          new Bin(FeatureNameFieldName, featureName),
           new Bin(ValueFieldName, enable),
           new Bin(DescriptionFieldName, description.getOrElse(""))
         )
       )
-      .map(_ => Feature(name, () => valueAccessor(name), description))
+      .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
 
-  override def update(name: String, enable: Boolean): F[Unit] =
-    monad.ifM(isExist(name))(
-      ifTrue =
-        monad.eval(client.put(writePolicy, key(name, namespace), new Bin(ValueFieldName, enable))),
-      ifFalse = monad.raiseError(FeatureNotFound(name))
+  override def update(featureName: String, enable: Boolean): F[Unit] =
+    monad.ifM(isExist(featureName))(
+      ifTrue = monad.eval(
+        client.put(writePolicy, key(featureName, namespace), new Bin(ValueFieldName, enable))
+      ),
+      ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
   override def featureList(): F[List[FeatureState]] = {
@@ -102,11 +111,11 @@ abstract class AerospikeFeatureRegistry[F[_]](
       )
   }
 
-  override def isExist(name: String): F[Boolean] =
-    monad.eval(client.exists(writePolicy, key(name, namespace)))
+  override def isExist(featureName: String): F[Boolean] =
+    monad.eval(client.exists(writePolicy, key(featureName, namespace)))
 
-  override def remove(name: String): F[Boolean] =
-    monad.eval(client.delete(writePolicy, key(name, namespace)))
+  override def remove(featureName: String): F[Boolean] =
+    monad.eval(client.delete(writePolicy, key(featureName, namespace)))
 
   override def close(): F[Unit] = monad.unit
 
