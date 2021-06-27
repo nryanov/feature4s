@@ -13,7 +13,7 @@ lazy val tapirVersion = "0.17.19"
 lazy val akkaVersion = "2.6.13"
 lazy val akkaHttpVersion = "10.2.4"
 // logging
-lazy val slf4jApiVersion = "1.7.30"
+lazy val slf4jApiVersion = "1.7.31"
 // test
 lazy val scalatestVersion = "3.2.9"
 lazy val scalacheckPlusVersion = "3.2.0.0"
