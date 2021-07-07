@@ -9,7 +9,7 @@ lazy val lettuceVersion = "6.1.3.RELEASE"
 lazy val redissonVersion = "3.15.6"
 lazy val aerospikeClientVersion = "5.1.4"
 // openapi
-lazy val tapirVersion = "0.17.19"
+lazy val tapirVersion = "0.17.20"
 lazy val akkaVersion = "2.6.13"
 lazy val akkaHttpVersion = "10.2.4"
 // logging
