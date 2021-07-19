@@ -51,12 +51,16 @@ abstract class InMemoryFeatureRegistry[F[_]](me: MonadError[F]) extends FeatureR
     }
 
   override def update(featureName: String, enable: Boolean): F[Unit] =
-    monad.eval(
-      features.computeIfPresent(
-        featureName,
-        (_, state) => state.copy(isEnable = enable)
+    monad
+      .eval(
+        features.computeIfPresent(
+          featureName,
+          (_, state) => state.copy(isEnable = enable)
+        )
       )
-    )
+      .flatMap(state =>
+        if (state == null) monad.raiseError(FeatureNotFound(featureName)) else monad.unit
+      )
 
   override def featureList(): F[List[FeatureState]] =
     monad.eval(javaCollectionToScala(features.values()).toList)

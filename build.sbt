@@ -12,13 +12,9 @@ lazy val aerospikeClientVersion = "5.1.5"
 lazy val tapirVersion = "0.17.20"
 lazy val akkaVersion = "2.6.13"
 lazy val akkaHttpVersion = "10.2.4"
-// logging
-lazy val slf4jApiVersion = "1.7.31"
 // test
 lazy val scalatestVersion = "3.2.9"
-lazy val scalacheckPlusVersion = "3.2.2.0"
 lazy val scalamockVersion = "5.1.0"
-lazy val scalacheckVersion = "1.14.3"
 lazy val testContainersVersion = "0.39.5"
 lazy val logbackVersion = "1.2.3"
 
@@ -133,9 +129,7 @@ lazy val core = project
   .settings(moduleName := "feature4s-core")
   .settings(
     libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % slf4jApiVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      "org.scalatestplus" %% "scalacheck-1-14" % scalacheckPlusVersion % Test,
       "org.scalamock" %% "scalamock" % scalamockVersion % Test,
       "ch.qos.logback" % "logback-classic" % logbackVersion % Test,
       "com.dimafeng" %% "testcontainers-scala" % testContainersVersion % Test
