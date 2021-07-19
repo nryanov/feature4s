@@ -18,7 +18,7 @@ trait MonadErrorSpec[F[_]] extends AsyncFunSuite with Matchers with ScalaFutures
   test("unit") {
     for {
       result <- toFuture(monadError.unit)
-    } yield result shouldBe ()
+    } yield result shouldBe (())
   }
 
   test("pure") {
@@ -48,7 +48,7 @@ trait MonadErrorSpec[F[_]] extends AsyncFunSuite with Matchers with ScalaFutures
     } yield {
       eval shouldBe 2
       eval shouldBe l
-      r shouldBe ()
+      r shouldBe (())
 
       a1 shouldBe 4
       a1 shouldBe a2
