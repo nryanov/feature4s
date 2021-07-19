@@ -14,4 +14,7 @@ private[feature4s] object CollectionConverters {
   implicit def javaIteratorToScala[A](iter: java.util.Iterator[A]): Iterator[A] = iter.asScala
 
   implicit def scalaSetTOJava[A](set: Set[A]): java.util.Set[A] = set.asJava
+
+  // not implicit
+  def javaCollectionToScala[A](collection: java.util.Collection[A]): Iterable[A] = collection.asScala
 }
