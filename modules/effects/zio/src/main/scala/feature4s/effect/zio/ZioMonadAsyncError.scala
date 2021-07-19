@@ -24,13 +24,13 @@ final class ZioMonadAsyncError extends MonadAsyncError[Task] {
 
   override def pure[A](value: A): Task[A] = Task.succeed(value)
 
-  override def map[A, B](fa: Task[A])(f: A => B): Task[B] = fa.map(f)
+  override def map[A, B](fa: => Task[A])(f: A => B): Task[B] = fa.map(f)
 
-  override def flatMap[A, B](fa: Task[A])(f: A => Task[B]): Task[B] = fa.flatMap(f)
+  override def flatMap[A, B](fa: => Task[A])(f: A => Task[B]): Task[B] = fa.flatMap(f)
 
   override def raiseError[A](error: Throwable): Task[A] = Task.fail(error)
 
-  override def mapError[A](fa: Task[A])(f: Throwable => Throwable): Task[A] =
+  override def mapError[A](fa: => Task[A])(f: Throwable => Throwable): Task[A] =
     fa.mapError(f)
 
   override def handleErrorWith[A](fa: => Task[A])(
@@ -38,13 +38,13 @@ final class ZioMonadAsyncError extends MonadAsyncError[Task] {
   ): Task[A] =
     fa.catchSome(pf)
 
-  override def void[A](fa: Task[A]): Task[Unit] = fa.unit
+  override def void[A](fa: => Task[A]): Task[Unit] = fa.unit
 
   override def eval[A](f: => A): Task[A] = Task.effect(f)
 
   override def unit: Task[Unit] = Task.unit
 
-  override def ifM[A](fcond: Task[Boolean])(ifTrue: => Task[A], ifFalse: => Task[A]): Task[A] =
+  override def ifM[A](fcond: => Task[Boolean])(ifTrue: => Task[A], ifFalse: => Task[A]): Task[A] =
     Task.ifM(fcond)(ifTrue, ifFalse)
 
   override def whenA[A](cond: Boolean)(f: => Task[A]): Task[Unit] = Task.when(cond)(f)
