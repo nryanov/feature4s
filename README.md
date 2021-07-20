@@ -1,6 +1,8 @@
 # feature4s
 [![GitHub license](https://img.shields.io/github/license/nryanov/feature4s)](https://github.com/nryanov/feature4s/blob/master/LICENSE.txt)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.nryanov.feature4s/feature4s-core_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.nryanov.feature4s/feature4s-core_2.13)
+[![Codecov](https://img.shields.io/codecov/c/github/nryanov/feature4s)](https://img.shields.io/codecov/c/github/nryanov/feature4s)
+[![feature4s CI](https://github.com/nryanov/feature4s/actions/workflows/scala.yml/badge.svg?branch=master)](https://github.com/nryanov/feature4s/actions/workflows/scala.yml)
 
 feature4s is a small library which implement the [Feature Toggles](https://martinfowler.com/articles/feature-toggles.html) pattern for scala.
 
@@ -88,6 +90,10 @@ Zookeeper | [curator](https://github.com/apache/curator)
 ## Implementations
 Class | Effect | 
 ------------ | ------------- 
+`InMemoryIdFeatureRegistry` | None (`Identity`)
+`InMemoryCatsFeatureRegistry` | `F[_]: cats.effect.Concurrent`
+`InMemoryZioFeatureRegistry` | `zio.Task`
+`CachedFeatureRegistry` | `F[_]` (wrapper for any `FeatureRegistry[F[_]]`)
 `AerospikeSyncFeatureRegistry` | None (`Identity`) 
 `AerospikeCatsFeatureRegistry` | `F[_]: cats.effect.Sync: cats.effect.ContextShift` 
 `AerospikeZioFeatureRegistry` | `zio.Task`
