@@ -47,7 +47,7 @@ abstract class InMemoryFeatureRegistry[F[_]](me: MonadError[F]) extends FeatureR
   private def valueAccessor(featureName: String): F[Boolean] =
     monad.eval(features.get(featureName)).flatMap { value =>
       if (value == null) monad.raiseError(FeatureNotFound(featureName))
-      else monad.eval(value.isEnable)
+      else monad.pure(value.isEnable)
     }
 
   override def update(featureName: String, enable: Boolean): F[Unit] =

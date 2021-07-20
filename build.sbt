@@ -8,6 +8,8 @@ lazy val jedisVersion = "3.6.1"
 lazy val lettuceVersion = "6.1.3.RELEASE"
 lazy val redissonVersion = "3.16.0"
 lazy val aerospikeClientVersion = "5.1.5"
+// cache
+lazy val caffeineVersion = "3.0.3"
 // openapi
 lazy val tapirVersion = "0.17.20"
 lazy val akkaVersion = "2.6.13"
@@ -290,6 +292,17 @@ lazy val zookeeperZio = project
   .settings(moduleName := "feature4s-zookeeper-zio")
   .dependsOn(zookeeper % compileAndTest)
   .dependsOn(zio % compileAndTest)
+
+lazy val cache = project
+  .in(file("modules/cache"))
+  .settings(allSettings)
+  .settings(moduleName := "feature4s-cache")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.ben-manes.caffeine" % "caffeine" % caffeineVersion
+    )
+  )
+  .dependsOn(core % compileAndTest)
 
 lazy val tapir = project
   .in(file("modules/tapir"))

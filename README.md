@@ -90,6 +90,10 @@ Zookeeper | [curator](https://github.com/apache/curator)
 ## Implementations
 Class | Effect | 
 ------------ | ------------- 
+`InMemoryIdFeatureRegistry` | None (`Identity`)
+`InMemoryCatsFeatureRegistry` | `F[_]: cats.effect.Concurrent`
+`InMemoryZioFeatureRegistry` | `zio.Task`
+`CachedFeatureRegistry` | `F[_]` (wrapper for any `FeatureRegistry[F[_]]`)
 `AerospikeSyncFeatureRegistry` | None (`Identity`) 
 `AerospikeCatsFeatureRegistry` | `F[_]: cats.effect.Sync: cats.effect.ContextShift` 
 `AerospikeZioFeatureRegistry` | `zio.Task`
