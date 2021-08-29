@@ -1,7 +1,7 @@
 lazy val kindProjectorVersion = "0.13.0"
 // effect
 lazy val zioVersion = "1.0.11"
-lazy val catsVersion = "2.5.3"
+lazy val catsVersion = "3.2.5"
 // clients
 lazy val curatorClientVersion = "5.2.0"
 lazy val jedisVersion = "3.6.3"
