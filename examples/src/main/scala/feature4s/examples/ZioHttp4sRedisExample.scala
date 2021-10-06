@@ -80,9 +80,7 @@ object ZioHttp4sRedisExample extends zio.App {
         .bindHttp(8080, "localhost")
         .withHttpApp(
           Router(
-            "/" -> routes
-              .combineK(featureRegistryRoutes.route)
-              .combineK(new SwaggerHttp4s(yaml).routes)
+            "/" -> routes.combineK(featureRegistryRoutes.route).combineK(new SwaggerHttp4s(yaml).routes)
           ).orNotFound
         )
         .serve

@@ -7,11 +7,7 @@ import feature4s.zookeeper.StateSerDe.{stateFromBytes, stateToBytes}
 import feature4s.zookeeper.ZookeeperFeatureRegistry.ZkState
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.CuratorCache
-import org.apache.zookeeper.KeeperException.{
-  BadVersionException,
-  NoNodeException,
-  NodeExistsException
-}
+import org.apache.zookeeper.KeeperException.{BadVersionException, NoNodeException, NodeExistsException}
 import org.apache.zookeeper.data.Stat
 
 abstract class ZookeeperFeatureRegistry[F[_]](

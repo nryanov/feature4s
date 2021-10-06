@@ -104,12 +104,11 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
       ifTrue = monad
         .cancelable[Boolean] { cb =>
           val cf =
-            asyncCommands
-              .hset(key(featureName, namespace), ValueFieldName, enable.toString)
-              .whenComplete { (r: java.lang.Boolean, err: Throwable) =>
+            asyncCommands.hset(key(featureName, namespace), ValueFieldName, enable.toString).whenComplete {
+              (r: java.lang.Boolean, err: Throwable) =>
                 if (err != null) cb(Left(ClientError(err)))
                 else cb(Right(r))
-              }
+            }
 
           () => monad.eval(cf.toCompletableFuture.cancel(true))
         }
@@ -125,11 +124,11 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
         monad.pure(keys),
         monad
           .cancelable[KeyScanCursor[String]] { cb =>
-            val cf = asyncCommands.scan(cursor, filter).whenComplete {
-              (cursor: KeyScanCursor[String], err: Throwable) =>
+            val cf =
+              asyncCommands.scan(cursor, filter).whenComplete { (cursor: KeyScanCursor[String], err: Throwable) =>
                 if (err != null) cb(Left(ClientError(err)))
                 else cb(Right(cursor))
-            }
+              }
 
             () => monad.eval(cf.toCompletableFuture.cancel(true))
           }
@@ -138,10 +137,9 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
 
     monad
       .cancelable[KeyScanCursor[String]] { cb =>
-        val cf = asyncCommands.scan(filter).whenComplete {
-          (cursor: KeyScanCursor[String], err: Throwable) =>
-            if (err != null) cb(Left(ClientError(err)))
-            else cb(Right(cursor))
+        val cf = asyncCommands.scan(filter).whenComplete { (cursor: KeyScanCursor[String], err: Throwable) =>
+          if (err != null) cb(Left(ClientError(err)))
+          else cb(Right(cursor))
         }
         () => monad.eval(cf.toCompletableFuture.cancel(true))
       }
@@ -151,12 +149,11 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
           monad
             .cancelable[java.util.List[KeyValue[String, String]]] { cb =>
               val cf =
-                asyncCommands
-                  .hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
-                  .whenComplete { (list, err) =>
+                asyncCommands.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName).whenComplete {
+                  (list, err) =>
                     if (err != null) cb(Left(ClientError(err)))
                     else cb(Right(list))
-                  }
+                }
 
               () => monad.eval(cf.toCompletableFuture.cancel(true))
             }
@@ -173,10 +170,9 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
   }
 
   override def isExist(featureName: String): F[Boolean] = monad.cancelable[Boolean] { cb =>
-    val cf = asyncCommands.exists(key(featureName, namespace)).whenComplete {
-      (r: java.lang.Long, err: Throwable) =>
-        if (err != null) cb(Left(ClientError(err)))
-        else cb(Right(r > 0))
+    val cf = asyncCommands.exists(key(featureName, namespace)).whenComplete { (r: java.lang.Long, err: Throwable) =>
+      if (err != null) cb(Left(ClientError(err)))
+      else cb(Right(r > 0))
     }
 
     () => monad.eval(cf.toCompletableFuture.cancel(true))
@@ -184,10 +180,9 @@ abstract class LettuceAsyncFeatureRegistry[F[_]](
 
   override def remove(featureName: String): F[Boolean] =
     monad.cancelable[Boolean] { cb =>
-      val cf = asyncCommands.unlink(key(featureName, namespace)).whenComplete {
-        (r: java.lang.Long, err: Throwable) =>
-          if (err != null) cb(Left(ClientError(err)))
-          else cb(Right(r > 0))
+      val cf = asyncCommands.unlink(key(featureName, namespace)).whenComplete { (r: java.lang.Long, err: Throwable) =>
+        if (err != null) cb(Left(ClientError(err)))
+        else cb(Right(r > 0))
       }
 
       () => monad.eval(cf.toCompletableFuture.cancel(true))

@@ -22,14 +22,8 @@ object codecs extends TapirJsonTethys with SchemaDerivation {
       .addField[Option[String]]("description")(_.description)
 
   implicit val featureRegistryErrorReader: JsonReader[FeatureRegistryError] =
-    JsonReader.builder
-      .addField[Int]("code")
-      .addField[String]("reason")
-      .buildReader(FeatureRegistryError.apply)
+    JsonReader.builder.addField[Int]("code").addField[String]("reason").buildReader(FeatureRegistryError.apply)
 
   implicit val featureRegistryErrorWriter: JsonWriter[FeatureRegistryError] =
-    JsonWriter
-      .obj[FeatureRegistryError]
-      .addField[Int]("code")(_.code)
-      .addField[String]("reason")(_.reason)
+    JsonWriter.obj[FeatureRegistryError].addField[Int]("code")(_.code).addField[String]("reason")(_.reason)
 }

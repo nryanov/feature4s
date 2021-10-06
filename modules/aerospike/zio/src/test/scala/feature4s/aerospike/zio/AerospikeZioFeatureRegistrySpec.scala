@@ -8,10 +8,7 @@ import zio.{Task, ZIO}
 
 import scala.concurrent.Future
 
-class AerospikeZioFeatureRegistrySpec
-    extends FeatureRegistrySpec[Task]
-    with AerospikeClientCreator
-    with ZioBaseSpec {
+class AerospikeZioFeatureRegistrySpec extends FeatureRegistrySpec[Task] with AerospikeClientCreator with ZioBaseSpec {
   override def featureRegistry(): FeatureRegistry[Task] = runtime.unsafeRun(
     ZIO
       .service[Blocking.Service]
