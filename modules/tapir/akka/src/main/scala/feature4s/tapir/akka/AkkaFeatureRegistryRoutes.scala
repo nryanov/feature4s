@@ -22,9 +22,7 @@ final class AkkaFeatureRegistryRoutes(
 ) extends BaseRoutes {
 
   private val featureListRoute =
-    AkkaHttpServerInterpreter.toRoute(featureListEndpoint)(_ =>
-      toRoute(featureRegistry.featureList())
-    )
+    AkkaHttpServerInterpreter.toRoute(featureListEndpoint)(_ => toRoute(featureRegistry.featureList()))
 
   private val enableFeatureRoute =
     AkkaHttpServerInterpreter.toRoute(enableFeatureEndpoint)(featureName =>
@@ -39,9 +37,7 @@ final class AkkaFeatureRegistryRoutes(
   private val deleteFeatureRoute =
     AkkaHttpServerInterpreter.toRoute(deleteFeatureEndpoint)(featureName =>
       toRoute(
-        featureRegistry
-          .remove(featureName)
-          .map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
+        featureRegistry.remove(featureName).map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
       )
     )
 

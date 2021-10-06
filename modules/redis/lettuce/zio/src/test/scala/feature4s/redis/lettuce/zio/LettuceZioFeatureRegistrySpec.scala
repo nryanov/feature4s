@@ -9,17 +9,12 @@ import zio.blocking.Blocking
 
 import scala.concurrent.Future
 
-class LettuceZioFeatureRegistrySpec
-    extends FeatureRegistrySpec[Task]
-    with LettuceClientCreator
-    with ZioBaseSpec {
+class LettuceZioFeatureRegistrySpec extends FeatureRegistrySpec[Task] with LettuceClientCreator with ZioBaseSpec {
   override def featureRegistry(): FeatureRegistry[Task] =
     runtime.unsafeRun(
       ZIO
         .service[Blocking.Service]
-        .map(blocking =>
-          LettuceZioFeatureRegistry.useConnection(redisClient.connect(), DefaultNamespace, blocking)
-        )
+        .map(blocking => LettuceZioFeatureRegistry.useConnection(redisClient.connect(), DefaultNamespace, blocking))
     )
 
   override def toFuture[A](v: => Task[A]): Future[A] = runtime.unsafeRunToFuture(v)

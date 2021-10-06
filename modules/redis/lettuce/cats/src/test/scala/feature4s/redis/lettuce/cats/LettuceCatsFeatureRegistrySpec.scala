@@ -8,10 +8,7 @@ import feature4s.redis.lettuce.LettuceClientCreator
 
 import scala.concurrent.Future
 
-class LettuceCatsFeatureRegistrySpec
-    extends FeatureRegistrySpec[IO]
-    with CatsBaseSpec
-    with LettuceClientCreator {
+class LettuceCatsFeatureRegistrySpec extends FeatureRegistrySpec[IO] with CatsBaseSpec with LettuceClientCreator {
   override def featureRegistry(): FeatureRegistry[IO] =
     LettuceCatsFeatureRegistry.useConnection(redisClient.connect(), DefaultNamespace, blocker)
 

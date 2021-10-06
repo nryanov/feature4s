@@ -15,15 +15,10 @@ abstract class BaseRoutes(implicit
   private val baseEndpoint: Endpoint[Unit, (StatusCode, FeatureRegistryError), Unit, Any] =
     endpoint.in("features").errorOut(statusCode.and(anyJsonBody[FeatureRegistryError]))
 
-  private[tapir] val featureListEndpoint
-    : Endpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState], Any] =
-    baseEndpoint.get
-      .out(anyJsonBody[List[FeatureState]])
-      .description("Get registered feature list")
-      .tag("features")
+  private[tapir] val featureListEndpoint: Endpoint[Unit, (StatusCode, FeatureRegistryError), List[FeatureState], Any] =
+    baseEndpoint.get.out(anyJsonBody[List[FeatureState]]).description("Get registered feature list").tag("features")
 
-  private[tapir] val enableFeatureEndpoint
-    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+  private[tapir] val enableFeatureEndpoint: Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.put
       .in(path[String]("featureName"))
       .in("enable")
@@ -31,8 +26,7 @@ abstract class BaseRoutes(implicit
       .description("Enable feature")
       .tag("features")
 
-  private[tapir] val disableFeatureEndpoint
-    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+  private[tapir] val disableFeatureEndpoint: Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.put
       .in(path[String]("featureName"))
       .in("disable")
@@ -40,8 +34,7 @@ abstract class BaseRoutes(implicit
       .description("Disable feature")
       .tag("features")
 
-  private[tapir] val deleteFeatureEndpoint
-    : Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
+  private[tapir] val deleteFeatureEndpoint: Endpoint[String, (StatusCode, FeatureRegistryError), StatusCode, Any] =
     baseEndpoint.delete
       .in(path[String]("featureName"))
       .out(statusCode.example(StatusCode.Ok))
