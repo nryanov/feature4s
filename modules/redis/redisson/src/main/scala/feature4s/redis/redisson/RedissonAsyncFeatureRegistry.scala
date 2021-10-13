@@ -103,9 +103,8 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
   override def update(featureName: String, enable: Boolean): F[Unit] =
     monad.ifM(isExist(featureName))(
       ifTrue = monad.cancelable[Unit] { cb =>
-        val cf = client
-          .getMap[String, String](key(featureName, namespace), codec)
-          .putAsync(ValueFieldName, enable.toString)
+        val cf =
+          client.getMap[String, String](key(featureName, namespace), codec).putAsync(ValueFieldName, enable.toString)
 
         cf.onComplete { (r, err) =>
           if (err != null) cb(Left(ClientError(err)))
@@ -118,10 +117,8 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
     )
 
   override def featureList(): F[List[FeatureState]] =
-    monad
-      .eval(keyCommands.getKeysByPattern(keyFilter(namespace)))
-      .flatMap(iter => monad.eval(iter.toList))
-      .flatMap { keys =>
+    monad.eval(keyCommands.getKeysByPattern(keyFilter(namespace))).flatMap(iter => monad.eval(iter.toList)).flatMap {
+      keys =>
         monad.traverse(keys)(key =>
           monad
             .cancelable[Map[String, String]] { cb =>
@@ -144,7 +141,7 @@ abstract class RedissonAsyncFeatureRegistry[F[_]](
               )
             )
         )
-      }
+    }
 
   override def isExist(featureName: String): F[Boolean] =
     monad.cancelable { cb =>

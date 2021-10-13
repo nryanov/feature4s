@@ -100,9 +100,8 @@ abstract class AerospikeFeatureRegistry[F[_]](
         records
           .map(r =>
             FeatureState(
-              name = Option(r.record.getString(FeatureNameFieldName))
-                .filter(_.nonEmpty)
-                .getOrElse("empty_feature_name"),
+              name =
+                Option(r.record.getString(FeatureNameFieldName)).filter(_.nonEmpty).getOrElse("empty_feature_name"),
               isEnable = r.record.getBoolean(ValueFieldName),
               description = Option(r.record.getString(DescriptionFieldName)).filter(_.nonEmpty)
             )

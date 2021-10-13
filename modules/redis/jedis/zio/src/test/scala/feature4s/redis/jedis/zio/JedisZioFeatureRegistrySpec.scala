@@ -9,10 +9,7 @@ import zio.blocking.Blocking
 
 import scala.concurrent.Future
 
-class JedisZioFeatureRegistrySpec
-    extends FeatureRegistrySpec[Task]
-    with ZioBaseSpec
-    with JedisClientCreator {
+class JedisZioFeatureRegistrySpec extends FeatureRegistrySpec[Task] with ZioBaseSpec with JedisClientCreator {
   override def featureRegistry(): FeatureRegistry[Task] =
     runtime.unsafeRun(
       ZIO

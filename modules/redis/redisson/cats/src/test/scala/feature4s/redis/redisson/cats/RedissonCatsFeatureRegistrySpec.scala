@@ -8,10 +8,7 @@ import feature4s.redis.redisson.RedissonClientCreator
 
 import scala.concurrent.Future
 
-class RedissonCatsFeatureRegistrySpec
-    extends FeatureRegistrySpec[IO]
-    with RedissonClientCreator
-    with CatsBaseSpec {
+class RedissonCatsFeatureRegistrySpec extends FeatureRegistrySpec[IO] with RedissonClientCreator with CatsBaseSpec {
   override def featureRegistry(): FeatureRegistry[IO] =
     RedissonCatsFeatureRegistry.useClient(redisClient, DefaultNamespace, blocker)
 
