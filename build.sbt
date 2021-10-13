@@ -20,7 +20,7 @@ lazy val scalamockVersion = "5.1.0"
 lazy val testContainersVersion = "0.39.7"
 lazy val logbackVersion = "1.2.5"
 
-val scala2_12 = "2.12.13"
+val scala2_12 = "2.12.15"
 val scala2_13 = "2.13.5"
 
 val compileAndTest = "compile->compile;test->test"
