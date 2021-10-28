@@ -18,7 +18,7 @@ lazy val akkaHttpVersion = "10.2.6"
 lazy val scalatestVersion = "3.2.9"
 lazy val scalamockVersion = "5.1.0"
 lazy val testContainersVersion = "0.39.8"
-lazy val logbackVersion = "1.2.5"
+lazy val logbackVersion = "1.2.6"
 
 val scala2_12 = "2.12.13"
 val scala2_13 = "2.13.6"
