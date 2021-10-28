@@ -55,9 +55,7 @@ class AkkaFeatureRegistryRoutesSpec
   test("feature not found") {
     val featureRegistry = mock[FeatureRegistry[Future]]
 
-    (featureRegistry.update _)
-      .expects("test", false)
-      .returning(Future.failed(FeatureNotFound("test")))
+    (featureRegistry.update _).expects("test", false).returning(Future.failed(FeatureNotFound("test")))
 
     val routes = AkkaFeatureRegistryRoutes(featureRegistry)
 

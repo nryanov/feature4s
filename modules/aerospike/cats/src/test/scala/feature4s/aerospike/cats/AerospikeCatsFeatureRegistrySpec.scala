@@ -7,10 +7,7 @@ import feature4s.effect.cats.CatsBaseSpec
 
 import scala.concurrent.Future
 
-class AerospikeCatsFeatureRegistrySpec
-    extends FeatureRegistrySpec[IO]
-    with AerospikeClientCreator
-    with CatsBaseSpec {
+class AerospikeCatsFeatureRegistrySpec extends FeatureRegistrySpec[IO] with AerospikeClientCreator with CatsBaseSpec {
   override def featureRegistry(): FeatureRegistry[IO] =
     AerospikeCatsFeatureRegistry.useClient(aerospikeClient, "test", blocker)
 

@@ -5,8 +5,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import feature4s.monad.MonadError
 
-final class CatsMonadError[F[_]: ContextShift](blocker: Blocker)(implicit F: Sync[F])
-    extends MonadError[F] {
+final class CatsMonadError[F[_]: ContextShift](blocker: Blocker)(implicit F: Sync[F]) extends MonadError[F] {
   override def pure[A](value: A): F[A] = F.pure(value)
 
   override def map[A, B](fa: => F[A])(f: A => B): F[B] = F.map(fa)(f)
