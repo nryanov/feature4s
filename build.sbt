@@ -1,13 +1,13 @@
-lazy val kindProjectorVersion = "0.13.0"
+lazy val kindProjectorVersion = "0.13.1"
 // effect
 lazy val zioVersion = "1.0.11"
 lazy val catsVersion = "2.5.3"
 // clients
 lazy val curatorClientVersion = "5.2.0"
-lazy val jedisVersion = "3.6.3"
+lazy val jedisVersion = "3.7.0"
 lazy val lettuceVersion = "6.1.4.RELEASE"
 lazy val redissonVersion = "3.16.1"
-lazy val aerospikeClientVersion = "5.1.7"
+lazy val aerospikeClientVersion = "5.1.8"
 // cache
 lazy val caffeineVersion = "3.0.3"
 // openapi
@@ -17,11 +17,11 @@ lazy val akkaHttpVersion = "10.2.6"
 // test
 lazy val scalatestVersion = "3.2.9"
 lazy val scalamockVersion = "5.1.0"
-lazy val testContainersVersion = "0.39.7"
-lazy val logbackVersion = "1.2.6"
+lazy val testContainersVersion = "0.39.8"
+lazy val logbackVersion = "1.2.5"
 
 val scala2_12 = "2.12.13"
-val scala2_13 = "2.13.5"
+val scala2_13 = "2.13.6"
 
 val compileAndTest = "compile->compile;test->test"
 

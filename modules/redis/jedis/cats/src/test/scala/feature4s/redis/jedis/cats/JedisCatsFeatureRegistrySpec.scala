@@ -8,10 +8,7 @@ import feature4s.redis.jedis.JedisClientCreator
 
 import scala.concurrent.Future
 
-class JedisCatsFeatureRegistrySpec
-    extends FeatureRegistrySpec[IO]
-    with CatsBaseSpec
-    with JedisClientCreator {
+class JedisCatsFeatureRegistrySpec extends FeatureRegistrySpec[IO] with CatsBaseSpec with JedisClientCreator {
   override def featureRegistry(): FeatureRegistry[IO] =
     JedisCatsFeatureRegistry.useClient(jedisPool, DefaultNamespace, blocker)
 

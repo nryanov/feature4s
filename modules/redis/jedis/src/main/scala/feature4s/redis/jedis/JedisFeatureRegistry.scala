@@ -75,8 +75,7 @@ abstract class JedisFeatureRegistry[F[_]](
 
   override def update(featureName: String, enable: Boolean): F[Unit] = useClient { client =>
     monad.ifM(monad.eval(client.exists(key(featureName, namespace))))(
-      ifTrue =
-        monad.eval(client.hset(key(featureName, namespace), ValueFieldName, enable.toString)),
+      ifTrue = monad.eval(client.hset(key(featureName, namespace), ValueFieldName, enable.toString)),
       ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
   }
@@ -88,34 +87,29 @@ abstract class JedisFeatureRegistry[F[_]](
     def scan(cursor: ScanResult[String], keys: List[String]): F[List[String]] =
       monad.ifM(monad.pure(cursor.isCompleteIteration))(
         monad.pure(keys),
-        monad
-          .eval(client.scan(cursor.getCursor, filter))
-          .flatMap(cursor => scan(cursor, cursor.getResult ::: keys))
+        monad.eval(client.scan(cursor.getCursor, filter)).flatMap(cursor => scan(cursor, cursor.getResult ::: keys))
       )
 
-    monad
-      .eval(client.scan(startCursor, filter))
-      .flatMap(cursor => scan(cursor, cursor.getResult))
-      .flatMap { keys =>
-        monad.traverse(keys)(key =>
-          monad
-            .eval(
-              client.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
-            )
-            .map(fields => fields.toList)
-            .flatMap {
-              case featureName :: value :: description :: Nil =>
-                monad.pure(
-                  FeatureState(
-                    Option(featureName).filter(_.nonEmpty).getOrElse("empty_feature_name"),
-                    value.toBoolean,
-                    Option(description).filter(_.nonEmpty)
-                  )
+    monad.eval(client.scan(startCursor, filter)).flatMap(cursor => scan(cursor, cursor.getResult)).flatMap { keys =>
+      monad.traverse(keys)(key =>
+        monad
+          .eval(
+            client.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
+          )
+          .map(fields => fields.toList)
+          .flatMap {
+            case featureName :: value :: description :: Nil =>
+              monad.pure(
+                FeatureState(
+                  Option(featureName).filter(_.nonEmpty).getOrElse("empty_feature_name"),
+                  value.toBoolean,
+                  Option(description).filter(_.nonEmpty)
                 )
-              case _ => monad.raiseError(MissingFields(key))
-            }
-        )
-      }
+              )
+            case _ => monad.raiseError(MissingFields(key))
+          }
+      )
+    }
   }
 
   override def isExist(featureName: String): F[Boolean] = useClient { client =>

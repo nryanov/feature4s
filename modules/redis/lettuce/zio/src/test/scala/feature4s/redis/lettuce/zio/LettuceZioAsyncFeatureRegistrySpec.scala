@@ -8,10 +8,7 @@ import zio._
 
 import scala.concurrent.Future
 
-class LettuceZioAsyncFeatureRegistrySpec
-    extends FeatureRegistrySpec[Task]
-    with LettuceClientCreator
-    with ZioBaseSpec {
+class LettuceZioAsyncFeatureRegistrySpec extends FeatureRegistrySpec[Task] with LettuceClientCreator with ZioBaseSpec {
   override def featureRegistry(): FeatureRegistry[Task] =
     LettuceZioAsyncFeatureRegistry.useClient(redisClient.connect(), DefaultNamespace)
 

@@ -21,8 +21,8 @@ private[zookeeper] class FeatureCacheMap[F[_]](
   private val featureStates: ConcurrentHashMap[String, (Boolean, Option[String])] =
     new ConcurrentHashMap()
 
-  def featureList: List[FeatureState] = featureStates.map {
-    case (featureName, (isEnable, description)) => FeatureState(featureName, isEnable, description)
+  def featureList: List[FeatureState] = featureStates.map { case (featureName, (isEnable, description)) =>
+    FeatureState(featureName, isEnable, description)
   }.toList
 
   def setEnable(featureName: String, flag: Boolean): Unit =

@@ -32,9 +32,7 @@ final class ZioFeatureRegistryRoutes(
 
   private val deleteFeatureRoute = deleteFeatureEndpoint.serverLogic[Task](featureName =>
     toRoute(
-      featureRegistry
-        .remove(featureName)
-        .map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
+      featureRegistry.remove(featureName).map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
     )
   )
 

@@ -19,11 +19,7 @@ import io.circe.parser._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-class Http4sFeatureRegistryRoutesSpec
-    extends AnyFunSuite
-    with Matchers
-    with EitherValues
-    with MockFactory {
+class Http4sFeatureRegistryRoutesSpec extends AnyFunSuite with Matchers with EitherValues with MockFactory {
 
   val catsExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
@@ -50,9 +46,7 @@ class Http4sFeatureRegistryRoutesSpec
   test("success response for feature list") {
     val featureRegistry = mock[FeatureRegistry[IO]]
 
-    (featureRegistry.featureList _)
-      .expects()
-      .returning(IO.pure(List(FeatureState("test", isEnable = true, None))))
+    (featureRegistry.featureList _).expects().returning(IO.pure(List(FeatureState("test", isEnable = true, None))))
 
     val routes = Http4sFeatureRegistryRoutes[IO](featureRegistry)
     val request = Request[IO](method = Method.GET, uri = Uri(path = s"/features"))
@@ -78,9 +72,7 @@ class Http4sFeatureRegistryRoutesSpec
   test("feature not found") {
     val featureRegistry = mock[FeatureRegistry[IO]]
 
-    (featureRegistry.update _)
-      .expects("test", false)
-      .returning(IO.raiseError(FeatureNotFound("test")))
+    (featureRegistry.update _).expects("test", false).returning(IO.raiseError(FeatureNotFound("test")))
 
     val routes = Http4sFeatureRegistryRoutes[IO](featureRegistry)
     val request = Request[IO](method = Method.PUT, uri = Uri(path = s"/features/test/disable"))
