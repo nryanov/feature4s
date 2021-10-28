@@ -25,9 +25,7 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
 ) extends BaseRoutes {
 
   private val featureListRoute: HttpRoutes[F] =
-    Http4sServerInterpreter.toRoutes(featureListEndpoint)(_ =>
-      toRoute(featureRegistry.featureList())
-    )
+    Http4sServerInterpreter.toRoutes(featureListEndpoint)(_ => toRoute(featureRegistry.featureList()))
 
   private val enableFeatureRoute: HttpRoutes[F] =
     Http4sServerInterpreter.toRoutes(enableFeatureEndpoint)(featureName =>
@@ -42,9 +40,7 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
   private val deleteFeatureRoute: HttpRoutes[F] =
     Http4sServerInterpreter.toRoutes(deleteFeatureEndpoint)(featureName =>
       toRoute(
-        featureRegistry
-          .remove(featureName)
-          .map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
+        featureRegistry.remove(featureName).map(result => if (result) StatusCode.Ok else StatusCode.NotFound)
       )
     )
 
@@ -90,10 +86,7 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
 
   val route = {
     if (configuration.allowRemove) {
-      featureListRoute
-        .combineK(enableFeatureRoute)
-        .combineK(disableFeatureRoute)
-        .combineK(deleteFeatureRoute)
+      featureListRoute.combineK(enableFeatureRoute).combineK(disableFeatureRoute).combineK(deleteFeatureRoute)
     } else {
       featureListRoute.combineK(enableFeatureRoute).combineK(disableFeatureRoute)
     }

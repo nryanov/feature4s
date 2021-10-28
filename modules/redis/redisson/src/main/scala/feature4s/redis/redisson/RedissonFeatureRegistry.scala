@@ -23,9 +23,7 @@ abstract class RedissonFeatureRegistry[F[_]](
   ): F[Feature[F]] =
     monad
       .eval(
-        client
-          .getMap[String, String](key(featureName, namespace), codec)
-          .putIfAbsent(ValueFieldName, enable.toString)
+        client.getMap[String, String](key(featureName, namespace), codec).putIfAbsent(ValueFieldName, enable.toString)
       )
       .flatMap(_ => updateInfo(featureName, description.getOrElse("")))
       .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
@@ -77,19 +75,15 @@ abstract class RedissonFeatureRegistry[F[_]](
     monad.ifM(isExist(featureName))(
       ifTrue = monad
         .eval(
-          client
-            .getMap[String, String](key(featureName, namespace), codec)
-            .put(ValueFieldName, enable.toString)
+          client.getMap[String, String](key(featureName, namespace), codec).put(ValueFieldName, enable.toString)
         )
         .void,
       ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
   override def featureList(): F[List[FeatureState]] =
-    monad
-      .eval(keyCommands.getKeysByPattern(keyFilter(namespace)))
-      .flatMap(iter => monad.eval(iter.toList))
-      .flatMap { keys =>
+    monad.eval(keyCommands.getKeysByPattern(keyFilter(namespace))).flatMap(iter => monad.eval(iter.toList)).flatMap {
+      keys =>
         monad.traverse(keys)(key =>
           monad
             .eval[Map[String, String]](
@@ -105,7 +99,7 @@ abstract class RedissonFeatureRegistry[F[_]](
               )
             )
         )
-      }
+    }
 
   override def isExist(featureName: String): F[Boolean] =
     monad.eval(client.getMap(key(featureName, namespace)).isExists)

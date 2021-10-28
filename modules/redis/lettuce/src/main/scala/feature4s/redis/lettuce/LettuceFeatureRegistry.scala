@@ -70,9 +70,7 @@ abstract class LettuceFeatureRegistry[F[_]](
 
   override def update(featureName: String, enable: Boolean): F[Unit] =
     monad.ifM(isExist(featureName))(
-      ifTrue = monad
-        .eval(syncCommands.hset(key(featureName, namespace), ValueFieldName, enable.toString))
-        .void,
+      ifTrue = monad.eval(syncCommands.hset(key(featureName, namespace), ValueFieldName, enable.toString)).void,
       ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
@@ -82,27 +80,24 @@ abstract class LettuceFeatureRegistry[F[_]](
     def scan(cursor: KeyScanCursor[String], keys: List[String]): F[List[String]] =
       monad.ifM(monad.pure(cursor.isFinished))(
         monad.pure(keys),
-        monad
-          .eval(syncCommands.scan(cursor, filter))
-          .flatMap(cursor => scan(cursor, cursor.getKeys ::: keys))
+        monad.eval(syncCommands.scan(cursor, filter)).flatMap(cursor => scan(cursor, cursor.getKeys ::: keys))
       )
 
-    monad.eval(syncCommands.scan(filter)).flatMap(cursor => scan(cursor, cursor.getKeys)).flatMap {
-      keys =>
-        monad.traverse(keys)(key =>
-          monad
-            .eval(
-              syncCommands.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
+    monad.eval(syncCommands.scan(filter)).flatMap(cursor => scan(cursor, cursor.getKeys)).flatMap { keys =>
+      monad.traverse(keys)(key =>
+        monad
+          .eval(
+            syncCommands.hmget(key, FeatureNameFieldName, ValueFieldName, DescriptionFieldName)
+          )
+          .map(fields => fields.map(f => f.getKey -> f.getValue).toMap)
+          .map(fields =>
+            FeatureState(
+              fields.getOrElse(FeatureNameFieldName, "empty_feature_name"),
+              fields.get(ValueFieldName).exists(_.toBoolean),
+              fields.get(DescriptionFieldName).filter(_.nonEmpty)
             )
-            .map(fields => fields.map(f => f.getKey -> f.getValue).toMap)
-            .map(fields =>
-              FeatureState(
-                fields.getOrElse(FeatureNameFieldName, "empty_feature_name"),
-                fields.get(ValueFieldName).exists(_.toBoolean),
-                fields.get(DescriptionFieldName).filter(_.nonEmpty)
-              )
-            )
-        )
+          )
+      )
     }
   }
 

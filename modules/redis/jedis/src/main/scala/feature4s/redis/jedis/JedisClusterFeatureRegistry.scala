@@ -67,8 +67,7 @@ abstract class JedisClusterFeatureRegistry[F[_]](
 
   override def update(featureName: String, enable: Boolean): F[Unit] =
     monad.ifM(monad.eval(jedisCluster.exists(key(featureName, namespace))))(
-      ifTrue =
-        monad.eval(jedisCluster.hset(key(featureName, namespace), ValueFieldName, enable.toString)),
+      ifTrue = monad.eval(jedisCluster.hset(key(featureName, namespace), ValueFieldName, enable.toString)),
       ifFalse = monad.raiseError(FeatureNotFound(featureName))
     )
 
@@ -84,10 +83,8 @@ abstract class JedisClusterFeatureRegistry[F[_]](
           .flatMap(cursor => scan(cursor, cursor.getResult ::: keys))
       )
 
-    monad
-      .eval(jedisCluster.scan(startCursor, filter))
-      .flatMap(cursor => scan(cursor, cursor.getResult))
-      .flatMap { keys =>
+    monad.eval(jedisCluster.scan(startCursor, filter)).flatMap(cursor => scan(cursor, cursor.getResult)).flatMap {
+      keys =>
         monad.traverse(keys)(key =>
           monad
             .eval(
@@ -106,7 +103,7 @@ abstract class JedisClusterFeatureRegistry[F[_]](
               case _ => monad.raiseError(MissingFields(key))
             }
         )
-      }
+    }
   }
 
   override def isExist(featureName: String): F[Boolean] =

@@ -4,10 +4,7 @@ import com.aerospike.client.AerospikeClient
 import com.dimafeng.testcontainers.scalatest.TestContainerForAll
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-trait AerospikeClientCreator
-    extends TestContainerForAll
-    with BeforeAndAfterAll
-    with BeforeAndAfterEach { self: Suite =>
+trait AerospikeClientCreator extends TestContainerForAll with BeforeAndAfterAll with BeforeAndAfterEach { self: Suite =>
   override val containerDef: AerospikeContainer.Def = AerospikeContainer.Def()
 
   var aerospikeClient: AerospikeClient = _

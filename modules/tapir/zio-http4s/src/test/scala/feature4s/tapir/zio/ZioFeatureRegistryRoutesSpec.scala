@@ -16,11 +16,7 @@ import org.http4s._
 import zio.clock.Clock
 import zio.interop.catz._
 
-class ZioFeatureRegistryRoutesSpec
-    extends AnyFunSuite
-    with Matchers
-    with EitherValues
-    with MockFactory {
+class ZioFeatureRegistryRoutesSpec extends AnyFunSuite with Matchers with EitherValues with MockFactory {
 
   val runtime = zio.Runtime.default
   type ResultT[A] = ZIO[Any with Clock, Throwable, A]
@@ -53,9 +49,7 @@ class ZioFeatureRegistryRoutesSpec
   test("success response for feature list") {
     val featureRegistry = mock[FeatureRegistry[Task]]
 
-    (featureRegistry.featureList _)
-      .expects()
-      .returning(Task.succeed(List(FeatureState("test", isEnable = true, None))))
+    (featureRegistry.featureList _).expects().returning(Task.succeed(List(FeatureState("test", isEnable = true, None))))
 
     val routes = ZioFeatureRegistryRoutes(featureRegistry)
     val request =
