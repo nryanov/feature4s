@@ -27,8 +27,7 @@ abstract class InMemoryFeatureRegistry[F[_]](me: MonadError[F]) extends FeatureR
       )
       .flatMap(_ =>
         monad.eval(
-          features
-            .computeIfPresent(featureName, (_, state) => state.copy(description = description))
+          features.computeIfPresent(featureName, (_, state) => state.copy(description = description))
         )
       )
       .map(_ => Feature(featureName, () => valueAccessor(featureName), description))
@@ -58,9 +57,7 @@ abstract class InMemoryFeatureRegistry[F[_]](me: MonadError[F]) extends FeatureR
           (_, state) => state.copy(isEnable = enable)
         )
       )
-      .flatMap(state =>
-        if (state == null) monad.raiseError(FeatureNotFound(featureName)) else monad.unit
-      )
+      .flatMap(state => if (state == null) monad.raiseError(FeatureNotFound(featureName)) else monad.unit)
 
   override def featureList(): F[List[FeatureState]] =
     monad.eval(javaCollectionToScala(features.values()).toList)

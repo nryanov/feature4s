@@ -35,8 +35,7 @@ object Http4sRedisExample extends IOApp {
         testRoute = createTestRoute(feature)
         featureRegistryRoutes = createFeatureRouteWrapper(featureRegistry)
 
-        openApiDocs = OpenAPIDocsInterpreter
-          .toOpenAPI(featureRegistryRoutes.endpoints, "Example", "1.0.0")
+        openApiDocs = OpenAPIDocsInterpreter.toOpenAPI(featureRegistryRoutes.endpoints, "Example", "1.0.0")
         routes = testRoute
           .combineK(featureRegistryRoutes.route)
           .combineK(new SwaggerHttp4s(openApiDocs.toYaml).routes[IO])
@@ -55,8 +54,7 @@ object Http4sRedisExample extends IOApp {
     F: Sync[F]
   ): Resource[F, StatefulRedisConnection[String, String]] =
     Resource.make(
-      F.delay(RedisClient.create("redis://localhost:6379"))
-        .flatMap(client => F.delay(client.connect()))
+      F.delay(RedisClient.create("redis://localhost:6379")).flatMap(client => F.delay(client.connect()))
     )(connection => F.delay(connection.close()))
 
   def createFeatureRegistry[F[_]: ContextShift](
@@ -64,9 +62,7 @@ object Http4sRedisExample extends IOApp {
   )(implicit
     F: Sync[F]
   ): Resource[F, FeatureRegistry[F]] =
-    Blocker[F].map(blocker =>
-      LettuceCatsFeatureRegistry.useConnection(connection, "features", blocker)
-    )
+    Blocker[F].map(blocker => LettuceCatsFeatureRegistry.useConnection(connection, "features", blocker))
 
   def createTestRoute[F[_]: ContextShift: Timer](
     feature: Feature[F]

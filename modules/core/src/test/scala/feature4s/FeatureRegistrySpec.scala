@@ -74,9 +74,7 @@ trait FeatureRegistrySpec[F[_]]
   test("should fail when update value of not existing feature ") {
     val registry = featureRegistry()
 
-    whenReady(toFuture(registry.update("test", enable = false)).failed)(r =>
-      r shouldBe FeatureNotFound("test")
-    )
+    whenReady(toFuture(registry.update("test", enable = false)).failed)(r => r shouldBe FeatureNotFound("test"))
   }
 
   test("get feature list") {
