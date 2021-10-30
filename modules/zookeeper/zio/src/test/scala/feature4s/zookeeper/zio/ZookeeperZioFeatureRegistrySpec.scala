@@ -11,10 +11,7 @@ import zio.Task
 
 import scala.concurrent.Future
 
-class ZookeeperZioFeatureRegistrySpec
-    extends FeatureRegistrySpec[Task]
-    with ZookeeperTestServer
-    with ZioBaseSpec {
+class ZookeeperZioFeatureRegistrySpec extends FeatureRegistrySpec[Task] with ZookeeperTestServer with ZioBaseSpec {
   private var zkClient: CuratorFramework = _
 
   override def featureRegistry(): FeatureRegistry[Task] = {
