@@ -13,7 +13,7 @@ lazy val caffeineVersion = "3.0.3"
 // openapi
 lazy val tapirVersion = "0.17.20"
 lazy val akkaVersion = "2.6.13"
-lazy val akkaHttpVersion = "10.2.6"
+lazy val akkaHttpVersion = "10.2.7"
 // test
 lazy val scalatestVersion = "3.2.9"
 lazy val scalamockVersion = "5.1.0"
