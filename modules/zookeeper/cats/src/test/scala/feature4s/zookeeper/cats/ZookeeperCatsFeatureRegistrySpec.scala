@@ -11,10 +11,7 @@ import org.apache.curator.retry.RetryOneTime
 
 import scala.concurrent.Future
 
-class ZookeeperCatsFeatureRegistrySpec
-    extends FeatureRegistrySpec[IO]
-    with ZookeeperTestServer
-    with CatsBaseSpec {
+class ZookeeperCatsFeatureRegistrySpec extends FeatureRegistrySpec[IO] with ZookeeperTestServer with CatsBaseSpec {
   private var zkClient: CuratorFramework = _
 
   override def featureRegistry(): FeatureRegistry[IO] = {
