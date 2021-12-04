@@ -66,9 +66,7 @@ class CachedFeatureRegistry[F[_]] private (
   // featureList get from the underlying feature registry and update current cache
   override def featureList(): F[List[FeatureState]] =
     delegate.featureList().flatMap { features =>
-      monad
-        .eval(features.foreach(feature => cache.put(feature.name, feature.isEnable)))
-        .map(_ => features)
+      monad.eval(features.foreach(feature => cache.put(feature.name, feature.isEnable))).map(_ => features)
     }
 
   override def isExist(featureName: String): F[Boolean] =
