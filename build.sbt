@@ -5,7 +5,7 @@ lazy val catsVersion = "2.5.3"
 // clients
 lazy val curatorClientVersion = "5.2.0"
 lazy val jedisVersion = "3.7.1"
-lazy val lettuceVersion = "6.1.5.RELEASE"
+lazy val lettuceVersion = "6.1.8.RELEASE"
 lazy val redissonVersion = "3.16.7"
 lazy val aerospikeClientVersion = "5.1.11"
 // cache
