@@ -26,6 +26,7 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
 
 import scala.concurrent.ExecutionContext
+import cats.effect.{ Resource, Temporal }
 
 object Http4sRedisExample extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -62,9 +63,9 @@ object Http4sRedisExample extends IOApp {
   )(implicit
     F: Sync[F]
   ): Resource[F, FeatureRegistry[F]] =
-    Blocker[F].map(blocker => LettuceCatsFeatureRegistry.useConnection(connection, "features", blocker))
+    Resource.unit[F].map(blocker => LettuceCatsFeatureRegistry.useConnection(connection, "features", blocker))
 
-  def createTestRoute[F[_]: ContextShift: Timer](
+  def createTestRoute[F[_]: ContextShift: Temporal](
     feature: Feature[F]
   )(implicit F: Concurrent[F]): HttpRoutes[F] =
     Http4sServerInterpreter.toRoutes(endpoint.get.in("test").out(stringBody))(_ =>
@@ -74,7 +75,7 @@ object Http4sRedisExample extends IOApp {
       )
     )
 
-  def createFeatureRouteWrapper[F[_]: ContextShift: Timer](
+  def createFeatureRouteWrapper[F[_]: ContextShift: Temporal](
     featureRegistry: FeatureRegistry[F]
   )(implicit F: ConcurrentEffect[F]): Http4sFeatureRegistryRoutes[F] =
     Http4sFeatureRegistryRoutes(featureRegistry)
