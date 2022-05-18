@@ -11,7 +11,7 @@ lazy val aerospikeClientVersion = "6.0.0"
 // cache
 lazy val caffeineVersion = "3.0.3"
 // openapi
-lazy val tapirVersion = "0.17.20"
+lazy val tapirVersion = "0.20.2"
 lazy val akkaVersion = "2.6.19"
 lazy val akkaHttpVersion = "10.2.9"
 // test
