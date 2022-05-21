@@ -1,6 +1,6 @@
 package feature4s.redis.jedis.cats
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import feature4s.effect.cats.CatsMonadError
 import feature4s.redis.jedis.JedisFeatureRegistry
 import redis.clients.jedis.Jedis
@@ -19,7 +19,5 @@ class JedisCatsFeatureRegistry[F[_]: ContextShift: Sync] private (
 object JedisCatsFeatureRegistry {
   def useClient[F[_]: ContextShift: Sync](
     pool: Pool[Jedis],
-    namespace: String,
-    blocker: Blocker
-  ): JedisCatsFeatureRegistry[F] = new JedisCatsFeatureRegistry(pool, namespace, blocker)
+    namespace: String): JedisCatsFeatureRegistry[F] = new JedisCatsFeatureRegistry(pool, namespace, blocker)
 }

@@ -5,7 +5,7 @@ import cats.syntax.either._
 import cats.syntax.applicativeError._
 import cats.syntax.semigroupk._
 import sttp.model.StatusCode
-import cats.effect.{ConcurrentEffect, ContextShift, Timer}
+import cats.effect.ConcurrentEffect
 import feature4s.{ClientError, FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.tapir.{BaseRoutes, Configuration, FeatureRegistryError}
 import org.http4s.HttpRoutes
@@ -13,8 +13,9 @@ import org.http4s.implicits._
 import sttp.tapir._
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.server.http4s.Http4sServerInterpreter
+import cats.effect.Temporal
 
-final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
+final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Temporal](
   featureRegistry: FeatureRegistry[F],
   configuration: Configuration
 )(implicit
@@ -94,7 +95,7 @@ final class Http4sFeatureRegistryRoutes[F[_]: ContextShift: Timer](
 }
 
 object Http4sFeatureRegistryRoutes {
-  def apply[F[_]: ContextShift: Timer](
+  def apply[F[_]: ContextShift: Temporal](
     featureRegistry: FeatureRegistry[F],
     configuration: Configuration = Configuration.Default
   )(implicit
