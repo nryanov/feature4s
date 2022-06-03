@@ -1,12 +1,12 @@
 lazy val kindProjectorVersion = "0.13.1"
 // effect
 lazy val zioVersion = "1.0.14"
-lazy val catsVersion = "2.5.4"
+lazy val catsVersion = "2.5.5"
 // clients
 lazy val curatorClientVersion = "5.2.1"
-lazy val jedisVersion = "4.2.3"
+lazy val jedisVersion = "3.9.0"
 lazy val lettuceVersion = "6.1.8.RELEASE"
-lazy val redissonVersion = "3.17.1"
+lazy val redissonVersion = "3.17.2"
 lazy val aerospikeClientVersion = "6.0.0"
 // cache
 lazy val caffeineVersion = "3.0.3"
