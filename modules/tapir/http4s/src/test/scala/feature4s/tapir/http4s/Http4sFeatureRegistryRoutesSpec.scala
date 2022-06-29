@@ -2,7 +2,7 @@ package feature4s.tapir.http4s
 
 import java.util.concurrent.Executors
 
-import cats.effect.{ContextShift, IO, Timer}
+import cats.effect.IO
 import feature4s.{FeatureNotFound, FeatureRegistry, FeatureState}
 import feature4s.tapir.FeatureRegistryError
 import io.circe.Decoder
@@ -18,13 +18,14 @@ import io.circe.generic.auto._
 import io.circe.parser._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import cats.effect.Temporal
 
 class Http4sFeatureRegistryRoutesSpec extends AnyFunSuite with Matchers with EitherValues with MockFactory {
 
   val catsExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
   implicit val cs: ContextShift[IO] = IO.contextShift(catsExecutionContext)
-  implicit val timer: Timer[IO] = IO.timer(catsExecutionContext)
+  implicit val timer: Temporal[IO] = IO.timer(catsExecutionContext)
 
   def check[A](actualResp: IO[Response[IO]], expectedStatus: Status, expectedBody: A)(implicit
     decoder: Decoder[A]

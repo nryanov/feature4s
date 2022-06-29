@@ -1,6 +1,6 @@
 package feature4s.aerospike.cats
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import com.aerospike.client.AerospikeClient
 import feature4s.aerospike.AerospikeFeatureRegistry
 import feature4s.effect.cats.CatsMonadError
@@ -18,7 +18,5 @@ class AerospikeCatsFeatureRegistry[F[_]: ContextShift: Sync] private (
 object AerospikeCatsFeatureRegistry {
   def useClient[F[_]: ContextShift: Sync](
     client: AerospikeClient,
-    namespace: String,
-    blocker: Blocker
-  ): AerospikeCatsFeatureRegistry[F] = new AerospikeCatsFeatureRegistry(client, namespace, blocker)
+    namespace: String): AerospikeCatsFeatureRegistry[F] = new AerospikeCatsFeatureRegistry(client, namespace, blocker)
 }
